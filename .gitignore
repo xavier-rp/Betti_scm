@@ -177,6 +177,8 @@ GUDHI/
 pollinators_facet_list.txt
 crime_facet_list.txt
 finalOTU_facet_n15.txt
-
+.travis.yml
+LICENSE
+tutorial_notebook.ipynb
 
 
