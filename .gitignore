@@ -146,3 +146,37 @@ ENV/
 /site
 
 # End of https://www.gitignore.io/api/c++,cmake,python
+
+### Added stuff ###
+
+### Folders ###
+finalOTU_thresh01/
+finalOTU_thresh007/
+finalOTU_thresh005/
+finalOTU_thresh004/
+finalOTU_thresh003/
+finalOTU_sumfilt05/
+finalOTU_sumfilt04/
+finalOTU_sumfilt03/
+finalOTU_sumfilt02/
+diseasome/
+datasets/
+crime/
+img/
+polli/
+pickle/
+src/
+bin/
+GUDHI/
+2sigma_filtered_finalOTU/
+.idea/
+
+### files ###
+*.json
+*.txt
+pollinators_facet_list.txt
+crime_facet_list.txt
+finalOTU_facet_n15.txt
+
+
+
