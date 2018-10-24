@@ -18,28 +18,39 @@ def read_edge_list(path):
     with open(path, 'r') as f:
         edge_list = set()
         for line in f:
-            if not line.lstrip().startswith("%"):  # ignore commets
+            if not line.lstrip().startswith("%"):  # ignore comments
                 e = line.strip().split()
                 edge_list.add((int(e[0]) - 1, int(e[1]) - 1))  # 0 index
         return list(edge_list)
 
 def read_nx_edge_list(path):
-    """Read edge list that has been created with to_nx_edge_list_format() in module biadjacency.py. """
+    """
+    Read edge list that has been created with to_nx_edge_list_format() in module biadjacency.py and transforms it in a
+    list of tuples that represent edges. With the networkx format, nodes are indexed from 0 to cardinal(V+E), where V
+    and E are the nodesets of the bipartite graph. As a result, the indices of the second node set (those in column two
+    of the file), need to be reindexed by subtracting the first element of the last line of the file + 1.
+
+    Parameters
+    ----------
+    path (str) : Path to the edge list
+
+    Returns (List of tuples) : List of the edges that were reindexed to be zero indexed.
+    -------
+
+    """
     with open(path, 'r') as f:
-        """With the networkx format, nodes are indexed from 0 to cardinal(V+E), where V and E are the nodesets of the
-        bipartite graph. As a result, the indices of the second node set (those in column two of the file), need to
-        be reindexed by substracting the first element of the last line of the file + 1.
+        """ .
         """
         edge_list = set()
         linelist = f.readlines()
         lastline = linelist[-1].strip().split()
-        index_to_substract = int(lastline[0]) + 1
+        index_to_subtract = int(lastline[0]) + 1
 
     with open(path, 'r') as f:
         for line in f:
             if not line.lstrip().startswith("%"):  # ignore comments
                 e = line.strip().split()
-                edge_list.add((int(e[0]), int(e[1]) - index_to_substract))  # 0 index
+                edge_list.add((int(e[0]), int(e[1]) - index_to_subtract))  # 0 index
         return list(edge_list)
 
 
@@ -104,13 +115,11 @@ if __name__ == '__main__':
     args.col = 1
 
 
-    ### Instruction : Use either read_edge_list if both sets in your edge list are one-indexed or use
-    ### read_edge_list_konect_minus in which you need change the number you have to substract from the index in your edge
-    ### list to be zero indexed.
+    ### Instruction : Use either read_edge_list if both sets in your edge list are one-indexed (KONECT FORMAT) or use
+    ### read_nx_edge_list if the edgelist was created using to_nx_edge_list_format() in the biadjacency module.
 
     #edge_list = read_edge_list(args.edge_list_path)
     edge_list = read_nx_edge_list(args.edge_list_path)
-    #edge_list = read_edge_list_konect_minus(args.edge_list_path)
 
     if edge_list is not None:
         ### Instruction : You can allow for remaping. Can be usefull to make sure everything is zero indexed, but scrambles
@@ -119,15 +128,12 @@ if __name__ == '__main__':
         #edge_list = remap_bipartite_edge_list(edge_list)
         edge_list = sorted(edge_list, key=itemgetter(args.col))
 
-        # Used to save the facetlist
+        # Used to save the facetlist in order to use it in the prune.py module
         stringtowrite = ''
         listfacetlength = []
         for max_facet in facet_generator(edge_list, args.col):
             print(" ".join([str(v) for v in sorted(max_facet)]))
             stringtowrite = stringtowrite + " ".join([str(v) for v in sorted(max_facet)]) +'\n'
-
-        #print(np.mean(np.array(listfacetlength)))
-        #print('__________________ \n', stringtowrite[0:])
 
         ### Instruction : change the path or the filename to make sure you don't overwrite
         with open('test.txt', 'w') as outfile:
