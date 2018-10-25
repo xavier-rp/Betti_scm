@@ -13,6 +13,9 @@ import itertools
 """
 Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
 
+In this module we compute the Betti numbers of a dataset and its randomized instances. We also plot the Betti number
+distribution and the graph representing the real data.
+
 """
 
 def facet_list_to_graph(facet_list):
