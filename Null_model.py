@@ -7,6 +7,21 @@ from networkx.algorithms import bipartite
 import random
 import matplotlib.pyplot as plt
 import seaborn as sns  # for aesthetic
+"""
+Author: Jean-Gabriel Young <info@jgyoung.ca>
+Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
+
+See '' main '' section
+
+This module is used to generate instances of the SCM from a given facet list. Each instances can be saved with the
+same name, but a different index.
+
+Make sure to read this before launching the code :
+
+There are several lines to update each time this code is used. To find which parameters have to be tuned, search
+(CTRL+F) for ''Instruction'' (without the quotation marks) or ''###''.
+
+"""
 
 def rejection_sampling(command, seed=0):
     # Call sampler with subprocess
@@ -83,40 +98,4 @@ if __name__ == '__main__':
         i += 1
     print('Done.\n Don\'t forget to change the saving file name so your file does not get written over.')
 
-
     print('time : ', time.time()-start)
-    """
-    This part can also be used to process the information.
-    """
-
-    """
-    ### Instruction : change name of variable to be meaningfull.
-    site_facet_list = []
-
-    ### Instruction : change the file path to the actual data.
-    with open("/home/xavier/Documents/Projet/scm/utilities/severepruned_ada_finalOTU.txt") as f:
-       for l in f:
-           site_facet_list.append([int(x) for x in l.strip().split()])
-    real = nx.degree_assortativity_coefficient(facet_list_to_graph(site_facet_list))
-    print("Real assortativity", real)
-
-    coeff = []
-
-    for idx in range(1,1001):
-        with open('/home/xavier/Documents/Projet/scm/2sigma_filtered_finalotu/2sig_filtered_finalotu' + str(idx) +'.json', 'r') as file:
-            facetlist = json.load(file)
-            print(idx)
-        g = facet_list_to_graph(facetlist)
-        coeff.append(nx.degree_assortativity_coefficient(g))
-    print(coeff)
-    plt.figure(figsize=(8, 4))
-    #plt.hist(coeff, bins= 20, density=True)
-    sns.distplot(coeff, hist=True)
-    plt.plot([real, real], [0, 30], color="#ff5b1e")
-    plt.text(-0.29, 25, 'Real system', color="#ff5b1e")
-    plt.ylim(0, 30)
-    plt.xlabel('Degree assortativity')
-    plt.ylabel('Histogram')
-    plt.show()
-
-    """
