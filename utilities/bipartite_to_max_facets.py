@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import numpy as np
 """
 Author: Jean-Gabriel Young <info@jgyoung.ca>
+Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
 
 Convert a bipartite graph (in KONECT format) to maximal facet format.
+OR
+Convert an edge list acquired via to_nx_edge_list_format() (see biadjacency.py) to maximal facet format.
 
 Assumes that left side nodes and right side nodes are the different part of
 the graph. Will reindex everything from 0, not necessarily conserving the

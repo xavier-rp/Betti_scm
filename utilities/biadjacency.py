@@ -4,6 +4,16 @@ import scipy.sparse
 import networkx as nx
 from sklearn.preprocessing import normalize
 import networkx.algorithms
+"""
+Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
+
+See section '' main ''
+
+This module is used to transform biadjacency matrix in .txt to an edge list.
+
+It can also normalize the matrix by column and remove values under a certain threshold in each column
+
+"""
 
 def to_nx_edge_list_format(filename_or_matrix='SubOtu4000.txt', out_name='edgelist_SubOtu4000.txt'):
     """

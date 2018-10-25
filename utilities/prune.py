@@ -4,8 +4,11 @@ import numpy as np
 """
 Prune facet list: removes all included facets in a facet list.
 
+In the '' main '' section, this list can also be saved in a file.
+
 Author: Alice Patania <alice.patania@isi.it>
 Author: Jean-Gabriel Young <info@jgyoung.ca>
+Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
 """
 import itertools
 
