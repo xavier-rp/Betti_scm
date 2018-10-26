@@ -44,6 +44,10 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # This function has to be launched in order to compute the Betti numbers
             sk.persistence()
             bettilist.append(sk.betti_numbers())
+    length_longest_sublist = max(len(l) for l in bettilist)
+    for sublist in bettilist:
+        if len(sublist) < length_longest_sublist:
+            sublist.extend(0 for i in range(length_longest_sublist - len(sublist)))
 
     return np.array(bettilist)
 
@@ -85,24 +89,25 @@ def plot_betti_persistence(bettiarray, threshold_array):
 
 if __name__ == '__main__':
 
-    thresholdlist = np.linspace(0.05, 0.1, 5)
+    thresholdlist = np.linspace(0.01, 0.2, 10000)
     i = 1
-    path = 'simpletest'
+    path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
     #for thresh in thresholdlist:
     #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     #    mat = normalize_columns(matrix1)
     #    matrix = matrix_filter(mat, threshold=thresh)
     #    print(matrix == mat)
     #    matrix = reduce_matrix(matrix)
-    #    to_nx_edge_list_format(matrix, out_name='simpletest'+str(i)+'.txt')
+    #    to_nx_edge_list_format(matrix, out_name=path+str(i)+'.txt')
     #    i += 1
-    ilist = np.arange(1, 6)
+    ilist = np.arange(1, 10001)
 
     #for i in ilist:
-    #    to_max_facet('simpletest'+str(i)+'.txt', 1, 'simpletest'+'facet'+str(i)+'.txt')
-    #    to_pruned_file('simpletest'+'facet'+str(i)+'.txt', 'simpletest'+'facet'+'pruned'+str(i)+'.txt')
+    #    to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
+    #    to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
 
-    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], 'simpletest'+'facet'+'pruned', 3)
+    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 4)
+    print(bettiarr.shape)
 
     plot_betti_persistence(bettiarr, thresholdlist)
 
