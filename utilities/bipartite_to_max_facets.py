@@ -86,6 +86,50 @@ def facet_generator(sorted_edge_list, facet_col=0):
         prev_facet = curr_facet
     yield facet_content
 
+def to_max_facet(path, col, outpath):
+    import argparse as ap
+    from operator import itemgetter
+    prs = ap.ArgumentParser(description='Convert a KONECT bipartite graph ' +
+                                        'to a list of maximal facets.')
+    prs.add_argument('--col', '-c', type=int, default=0,
+                     help='Column to use as facets (0 or 1).')
+    prs.add_argument('edge_list_path', type=str, nargs='?',
+                     help='Path to edge list.')
+    args = prs.parse_args()
+
+    ### Instruction : Change path to edge_list here :
+    args.edge_list_path = path
+
+    ### Instruction : Change column (0 or 1), so the one you chose represents the facets in the projection
+    args.col = col
+
+    ### Instruction : Use either read_edge_list if both sets in your edge list are one-indexed (KONECT FORMAT) or use
+    ### read_nx_edge_list if the edgelist was created using to_nx_edge_list_format() in the biadjacency module.
+
+    # edge_list = read_edge_list(args.edge_list_path)
+    edge_list = read_nx_edge_list(args.edge_list_path)
+
+    if edge_list is not None:
+        ### Instruction : You can allow for remaping. Can be usefull to make sure everything is zero indexed, but scrambles
+        ### the meaning of the nodes
+
+        # edge_list = remap_bipartite_edge_list(edge_list)
+        edge_list = sorted(edge_list, key=itemgetter(args.col))
+
+        # Used to save the facetlist in order to use it in the prune.py module
+        stringtowrite = ''
+        listfacetlength = []
+        for max_facet in facet_generator(edge_list, args.col):
+            print(" ".join([str(v) for v in sorted(max_facet)]))
+            stringtowrite = stringtowrite + " ".join([str(v) for v in sorted(max_facet)]) + '\n'
+
+        ### Instruction : change the path or the filename to make sure you don't overwrite
+        with open(outpath, 'w') as outfile:
+            outfile.write(stringtowrite)
+        print(
+            'Done.\nAlways make sure that the resulting facet list is zero indexed.\nDon\'t forget to change the saving file name so your file does not get written over.')
+
+
 if __name__ == '__main__':
     """
     Make sure to read this before launching the code :
