@@ -38,6 +38,37 @@ def prune(facet_list):
         for facet in facet_by_size[ref_size]:
             yield facet
 
+def to_pruned_file(path, outpath):
+    import argparse as ap
+    prs = ap.ArgumentParser(description='Prune facet list.')
+    prs.add_argument('facet_list', type=str, nargs='?',
+                     help='Path to facet list.')
+    args = prs.parse_args()
+
+    ### Instruction : Change path to facet list here :
+    # args.facet_list = '/home/xavier/Documents/Projet/scm/utilities/severeadathr_finalOTU.txt'
+    args.facet_list = path
+    facet_list = []
+    with open(args.facet_list, 'r') as f:
+        for line in f:
+            # frozenset is mandatory: allows for comparison
+            facet = frozenset([int(x) for x in line.strip().split()])
+            facet_list.append(facet)
+        stringtowrite = ''
+        listfacetlength = []
+        for facet in prune(facet_list):
+            print(" ".join([str(v) for v in facet]))
+            dumbstring = " ".join([str(v) for v in facet])
+            print(len(dumbstring.split()))
+            listfacetlength.append(len(dumbstring.split()))
+
+            stringtowrite = stringtowrite + " ".join([str(v) for v in facet]) + '\n'
+        print('The mean facet length is : ', np.mean(np.array(listfacetlength)))
+
+        ### Instruction : Change the path and name of the saved file here :
+        with open(outpath, 'w') as outfile:
+            outfile.write(stringtowrite)
+
 
 if __name__ == '__main__':
     """
