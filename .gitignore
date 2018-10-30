@@ -170,6 +170,7 @@ bin/
 GUDHI/
 2sigma_filtered_finalOTU/
 .idea/
+persistencetest/
 
 ### files ###
 *.json
