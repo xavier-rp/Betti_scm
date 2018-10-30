@@ -115,11 +115,9 @@ def plot_betti_persistence(bettiarray, threshold_array):
         bar_starting_pos.append(threshold_array[previous_change_index])
         bar_heights.append(threshold_array[i] - threshold_array[previous_change_index])
 
-        #plt.figure(betticolumn_index)
         plt.rcdefaults()
         fig, ax = plt.subplots()
 
-        # Example data
         y_pos = number_of_betti
         left = bar_starting_pos
         ax.barh(y_pos, bar_heights, align='center',
@@ -152,7 +150,8 @@ if __name__ == '__main__':
     #    to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
 
     bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 3)
-    print(bettiarr.shape)
+
+    np.savez(path+'001-02-10000', bettiarr, thresholdlist)
 
     plot_betti_persistence(bettiarr, thresholdlist)
 
