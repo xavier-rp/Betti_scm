@@ -81,7 +81,7 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
 
     return np.array(bettilist)
 
-def plot_betti_persistence(bettiarray, threshold_array):
+def plot_betti_persistence(bettiarray, threshold_array, sumfilt=True):
     """
     This function plots a persistence bar code of the number of Betti X throughout the filtrations. It plots N bar code
     where N is the number of columns in bettiarray (which correspond to a specific Betti number).
@@ -96,6 +96,9 @@ def plot_betti_persistence(bettiarray, threshold_array):
     -------
 
     """
+
+    subplotnb = str(len(bettiarray[0]))
+
 
     for betticolumn_index in range(0, len(bettiarray[0])):
         bar_heights = []
@@ -116,44 +119,96 @@ def plot_betti_persistence(bettiarray, threshold_array):
         bar_heights.append(threshold_array[i] - threshold_array[previous_change_index])
 
         plt.rcdefaults()
-        fig, ax = plt.subplots()
-
+        fig, ax = plt.subplots(int(subplotnb+'1'+str(betticolumn_index+1)))
+        ax.flatten()
+        print(int(subplotnb+'1'+str(betticolumn_index+1)))
         y_pos = number_of_betti
         left = bar_starting_pos
         ax.barh(y_pos, bar_heights, align='center',
                 color='green', left=left)
         ax.set_yticks(y_pos)
-        ax.invert_xaxis()
+        if not sumfilt:
+            ax.invert_xaxis()
         ax.set_xlabel('Threshold')
         ax.set_ylabel('Number of Betti ' + str(betticolumn_index) + ' in the simplicial complex')
         ax.set_title('Persistence of the number of Betti ' + str(betticolumn_index))
 
     plt.show()
 
+def proportion_of_species(path, maxnumber=2611):
+    """
+    This function finds the proportion of species that are considered in a filtration of the biadjacency matrix.
+    To do so, it uses the pruned facet list associated with this filtration and finds the highest node index.
+    By adding 1 to this index, the number we obtain corresponds to the number of species (we add 1 because the
+    pruned facet list are zero indexed).
+
+    Parameters
+    ----------
+    path (str) : Path to the pruned facet list
+    maxnumber (int) : Total number of species in a given biadjacency matrix. (final_OTU=2611).
+
+    Returns The proportion of species present in the facet list.
+    -------
+
+    """
+
+    nodes_indices = []
+
+    with open(path) as f:
+        for l in f:
+            nodes_indices.append(max([int(x) for x in l.strip().split()]))
+
+    # We add 1 since the species are zero indexed.
+    number_of_species = max(nodes_indices) + 1
+
+    return number_of_species/maxnumber
+
+def plot_species_prop(proportions, thresholdlist):
+
+    plt.plot(thresholdlist, proportions)
+    plt.xlabel('Threshold')
+    plt.ylabel('Species proportion %')
+
+
+
 if __name__ == '__main__':
 
-    thresholdlist = np.linspace(0.01, 0.2, 10000)
+    thresholdlist = np.linspace(0.001, 0.01, 1000)
+    thresholdlist = np.arange(0.1, 0.9, 0.01)
     i = 1
     path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
+    proportions = []
     #for thresh in thresholdlist:
     #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     #    mat = normalize_columns(matrix1)
-    #    matrix = matrix_filter(mat, threshold=thresh)
+    #    matrix = matrix_filter_sum_to_prop(mat, prop_threshold=thresh)
     #    print(matrix == mat)
     #    matrix = reduce_matrix(matrix)
     #    to_nx_edge_list_format(matrix, out_name=path+str(i)+'.txt')
     #    i += 1
     ilist = np.arange(1, 10001)
+    thresholdlist = thresholdlist[:len(ilist)]
 
-    #for i in ilist:
-    #    to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
-    #    to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
+    data = np.load(path + '001-02-10000-dimskel3' + '.npz')
+    bettiarr = data['arr_0']
+    thresholdlist = data['arr_1']
 
-    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 3)
+    for i in ilist:
+        #to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
+        #to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
+        proportions.append(proportion_of_species(path+'facet'+'pruned'+str(i)+'.txt'))
 
-    np.savez(path+'001-02-10000', bettiarr, thresholdlist)
+    plt.plot(thresholdlist, proportions)
+    plt.show()
+    #bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 3)
 
-    plot_betti_persistence(bettiarr, thresholdlist)
+    #np.savez(path+'01-08-001', bettiarr, thresholdlist)
+
+
+    data = np.load(path + '001-02-10000-dimskel3' +'.npz')
+    bettiarr = data['arr_0']
+    thresholdlist = data['arr_1']
+    plot_betti_persistence(bettiarr, thresholdlist, sumfilt=False)
 
 
 
