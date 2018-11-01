@@ -96,16 +96,22 @@ def plot_betti_persistence(bettiarray, threshold_array, sumfilt=True):
     -------
 
     """
-
+    # This variable contains the number of subplots that are going to be present.
     subplotnb = str(len(bettiarray[0]))
 
-
+    # Each column corresponds to a Betti number. The column contains the number of Betti X at each threshold.
+    # For each column (i.e. Betti), we find for how many thresholds (and which one) we had a certain value of
+    # Betti X.
     for betticolumn_index in range(0, len(bettiarray[0])):
+
         bar_heights = []
         bar_starting_pos = []
         number_of_betti = []
         previous_change_index = 0
         i = 1
+
+        # This loop computes the length of the bars, meaning the distance between the two thresholds through which
+        # a certain number of Betti X persists. It also stores the position of the bar on the x axis.
         while i < len(bettiarray[:, betticolumn_index]):
             if bettiarray[i, betticolumn_index] != bettiarray[i-1, betticolumn_index]:
                 number_of_betti.append(bettiarray[i-1, betticolumn_index])
@@ -118,11 +124,14 @@ def plot_betti_persistence(bettiarray, threshold_array, sumfilt=True):
         bar_starting_pos.append(threshold_array[previous_change_index])
         bar_heights.append(threshold_array[i] - threshold_array[previous_change_index])
 
+
+        # This section plots each bar code for every Betti number.
+
         plt.rcdefaults()
 
-
+        # Declares a subplot in the form subplot(XYZ) where X is the number of subplots, Y the selected column
+        # on the plot (only 1) and the line (for each betti, we need to use a new line on the figure).
         ax = plt.subplot(int(subplotnb+'1'+str(betticolumn_index+1)))
-        print(int(subplotnb+'1'+str(betticolumn_index+1)))
         y_pos = number_of_betti
         left = bar_starting_pos
         ax.barh(y_pos, bar_heights, align='center', left=left)
@@ -133,8 +142,9 @@ def plot_betti_persistence(bettiarray, threshold_array, sumfilt=True):
             ax.set_title('Persistence of the Betti numbers')
         ax.set_ylabel('Betti ' + str(betticolumn_index))
 
-        
+
     plt.xlabel('test')
+    # This command makes it possible to remove space between the subplots.
     plt.subplots_adjust(hspace=.0)
     ax.set_xlabel('Threshold')
 
