@@ -119,19 +119,24 @@ def plot_betti_persistence(bettiarray, threshold_array, sumfilt=True):
         bar_heights.append(threshold_array[i] - threshold_array[previous_change_index])
 
         plt.rcdefaults()
-        fig, ax = plt.subplots(int(subplotnb+'1'+str(betticolumn_index+1)))
-        ax.flatten()
+
+
+        ax = plt.subplot(int(subplotnb+'1'+str(betticolumn_index+1)))
         print(int(subplotnb+'1'+str(betticolumn_index+1)))
         y_pos = number_of_betti
         left = bar_starting_pos
-        ax.barh(y_pos, bar_heights, align='center',
-                color='green', left=left)
+        ax.barh(y_pos, bar_heights, align='center', left=left)
         ax.set_yticks(y_pos)
         if not sumfilt:
             ax.invert_xaxis()
-        ax.set_xlabel('Threshold')
-        ax.set_ylabel('Number of Betti ' + str(betticolumn_index) + ' in the simplicial complex')
-        ax.set_title('Persistence of the number of Betti ' + str(betticolumn_index))
+        if betticolumn_index == 0:
+            ax.set_title('Persistence of the Betti numbers')
+        ax.set_ylabel('Betti ' + str(betticolumn_index))
+
+        
+    plt.xlabel('test')
+    plt.subplots_adjust(hspace=.0)
+    ax.set_xlabel('Threshold')
 
     plt.show()
 
