@@ -4,6 +4,7 @@ import itertools
 import gudhi
 import json
 import time
+from utilities.prune import  prune
 
 
 def decompose_facet(facetlist, previ=0):
@@ -29,10 +30,7 @@ def decompose_facet(facetlist, previ=0):
                                 N choose (N-1) faces of the selected facet.
     previ (int) : The number of facets of size 1 before the update.
     """
-    # Transform maximal facets to its N choose (N-1) faces.
-
-    #with open(path, 'r') as file:
-    #    facetlist = json.load(file)
+    updatedfacetlist = []
 
     facetlist.sort(key=len)
 
@@ -50,23 +48,50 @@ def decompose_facet(facetlist, previ=0):
             i += 1
     previ = i
     if not stop_decompostion:
-        # draw a facet randomly
+        # draw a facet > 1 randomly
         random_index = np.random.randint(i, len(facetlist))
         facet = facetlist[random_index]
 
         # delete the facet in the list and replace it by its N choose N-1 faces
         del(facetlist[random_index])
         for face in itertools.combinations(facet, len(facet)-1):
-            facetlist.append(list(face))
+            facetlist.append(frozenset(face))
+        for facet in prune(facetlist):
+            print(facet)
+            updatedfacetlist.append(facet)
+
 
     return facetlist, previ
 
+def higher_order_link_percolation(origin_path, save_path):
+    with open(origin_path, 'r') as file:
+        facetlist = json.load(file)
+
+    # This loop transforms the sub lists in the facet list into frozen sets.
+    indx = 0
+    while indx < len(facetlist):
+        facetlist[indx] = frozenset(facetlist[indx])
+        indx += 1
+
+    current_length = 1
+    previous_length = 0
+    previ = 0
+    i = 1
+    while previous_length != current_length:
+        previous_length = len(facetlist)
+        facetlist, previ = decompose_facet(facetlist, previ)
+        with open(save_path + str(i) + '.json', 'w') as outfile:
+            json.dump(facetlist, outfile)
+        i += 1
+        current_length = len(facetlist)
 
 
 
 if __name__ == '__main__':
     start = time.time()
     path = r'/home/xavier/Documents/Projet/Betti_scm/finalOTU_thresh01/final_thresh01_instance1.json'
+    higher_order_link_percolation(path, '/home/xavier/Documents/Projet/Betti_scm/percolationtest/percotest')
+    exit()
     with open(path, 'r') as f:
         facetlist = json.load(f)
     print(len(facetlist[-1]))
