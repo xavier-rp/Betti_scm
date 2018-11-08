@@ -61,7 +61,7 @@ def decompose_facet(facetlist, previ=0):
             updatedfacetlist.append(facet)
 
 
-    return facetlist, previ
+    return updatedfacetlist, previ
 
 def higher_order_link_percolation(origin_path, save_path):
     with open(origin_path, 'r') as file:
@@ -72,25 +72,34 @@ def higher_order_link_percolation(origin_path, save_path):
     while indx < len(facetlist):
         facetlist[indx] = frozenset(facetlist[indx])
         indx += 1
-
-    current_length = 1
-    previous_length = 0
+    # We stop the decomposition of the facets when each node is isolated (part of a 0-simplex). We thus need to know
+    # how many isolated nodes there will be. Since the facet lists are zero-indexed, the maximal index that we can find
+    # corresponds to the total number of nodes - 1
+    length_totally_decomposed = max([max(facet) for facet in facetlist]) + 1
     previ = 0
     i = 1
-    while previous_length != current_length:
-        previous_length = len(facetlist)
+    while max(len(facet) for facet in facetlist) != 1:
+        if i == 16:
+            print('dafuk')
+            pass
         facetlist, previ = decompose_facet(facetlist, previ)
         with open(save_path + str(i) + '.json', 'w') as outfile:
-            json.dump(facetlist, outfile)
+            indx = 0
+            savedfacetlist = []
+            while indx < len(facetlist):
+                savedfacetlist.append(list(facetlist[indx]))
+                indx += 1
+            json.dump(savedfacetlist, outfile)
         i += 1
-        current_length = len(facetlist)
+        print(len(facetlist), length_totally_decomposed)
+    print(i)
 
 
 
 if __name__ == '__main__':
     start = time.time()
     path = r'/home/xavier/Documents/Projet/Betti_scm/finalOTU_thresh01/final_thresh01_instance1.json'
-    higher_order_link_percolation(path, '/home/xavier/Documents/Projet/Betti_scm/percolationtest/percotest')
+    higher_order_link_percolation(path, '/home/xavier/Documents/Projet/Betti_scm/percolationtest2/percotest')
     exit()
     with open(path, 'r') as f:
         facetlist = json.load(f)
