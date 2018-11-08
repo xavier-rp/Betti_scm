@@ -79,9 +79,6 @@ def higher_order_link_percolation(origin_path, save_path):
     previ = 0
     i = 1
     while max(len(facet) for facet in facetlist) != 1:
-        if i == 16:
-            print('dafuk')
-            pass
         facetlist, previ = decompose_facet(facetlist, previ)
         with open(save_path + str(i) + '.json', 'w') as outfile:
             indx = 0
@@ -91,8 +88,6 @@ def higher_order_link_percolation(origin_path, save_path):
                 indx += 1
             json.dump(savedfacetlist, outfile)
         i += 1
-        print(len(facetlist), length_totally_decomposed)
-    print(i)
 
 
 
