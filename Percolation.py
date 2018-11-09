@@ -8,7 +8,7 @@ from utilities.prune import  prune
 
 def destroy_highest_facet(facetlist, previ):
     """
-        Takes a random facet in a facet list and decomposes it in its N disconnected nodes, where N is the number of
+        Takes the biggest facet in a facet list and decomposes it in its N disconnected nodes, where N is the number of
         nodes in the facet.  It then returns the updated facet list where the original facet is deleted and replaced
         by its disconnected nodes.
         Parameters
@@ -51,7 +51,7 @@ def destroy_highest_facet(facetlist, previ):
     if not stop_decompostion:
 
         facet = facetlist[-1]
-        # delete the facet in the list and replace it by its N choose 2 faces unless it's already a 2 simplex
+        # delete the facet in the list and replace it by its N disconnected nodes
         del (facetlist[-1])
         for node in facet :
             facetlist.append(frozenset([node]))
@@ -107,7 +107,7 @@ def destroy_random_facet(facetlist, previ):
         random_index = np.random.randint(i, len(facetlist))
         facet = facetlist[random_index]
 
-        # delete the facet in the list and replace it by its N choose 2 faces unless it's already a 2 simplex
+        # delete the facet in the list and replace it by its N disconnected nodes
         del (facetlist[random_index])
         for node in facet :
             facetlist.append(frozenset([node]))
@@ -223,8 +223,6 @@ def highest_facet_to_1_simplices(facetlist, previ=0):
     previ = i
     # If there are no more facets of size > 1, we need to stop decomposing, hence this condition
     if not stop_decompostion:
-        # draw a facet > 1 randomly
-        random_index = np.random.randint(i, len(facetlist))
         facet = facetlist[-1]
 
         # delete the facet in the list and replace it by its N choose 2 faces unless it's already a 2 simplex
