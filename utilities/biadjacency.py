@@ -345,7 +345,6 @@ if __name__ == '__main__':
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1,39))
     mat = normalize_columns(matrix1)
     matrix = matrix_filter(mat, threshold=0.04)
-    print(matrix == mat)
     matrix = reduce_matrix(matrix)
     to_nx_edge_list_format(matrix, out_name='edglis')
 
