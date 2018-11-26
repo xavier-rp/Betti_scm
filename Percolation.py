@@ -507,7 +507,7 @@ def to_skeleton_percolation(origin_path, save_path, perc_func=random_facet_to_n_
 
     previ = 0
     i = 1
-    print(max([len(facet) for facet in facetlist]))
+
     while max(len(facet) for facet in facetlist) != n + 1:
         facetlist, previ = perc_func(facetlist, previ, n)
         with open(save_path + str(i) + '.json', 'w') as outfile:
@@ -520,7 +520,14 @@ def to_skeleton_percolation(origin_path, save_path, perc_func=random_facet_to_n_
         i += 1
 #############_____________________________NODE PERCOLATION________________________________###################
 
+"""
+For node percolation : find the maximum index in the facet list with max([len(facet) for facet in facetlist]) and then
+generate a list of indices with np.arange(0, maxthatwefound). Then we can draw a number randomly in this list and delete
+the node in every facet. This process could take place by iterating over every facet and finding the index at which place
+we can find the node that we want to delete (np.where). We could also use the simplicial complex, but for very big complexes
+it might be hard...
 
+"""
 
 if __name__ == '__main__':
     #start = time.time()

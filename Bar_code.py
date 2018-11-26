@@ -184,6 +184,24 @@ def plot_species_prop(proportions, thresholdlist):
     plt.xlabel('Threshold')
     plt.ylabel('Species proportion %')
 
+def fill_folder_with_facetlists(path, name, thresholdlist):
+    i = 1
+    proportions = []
+    for thresh in thresholdlist:
+       matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+       mat = normalize_columns(matrix1)
+       matrix = matrix_filter_sum_to_prop(mat, prop_threshold=thresh)
+       print(matrix == mat)
+       matrix = reduce_matrix(matrix)
+       to_nx_edge_list_format(matrix, out_name=path+str(i)+'.txt')
+       i += 1
+    ilist = np.arange(1, i)
+
+    for i in ilist:
+        to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
+        to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
+        proportions.append(proportion_of_species(path + 'facet' + 'pruned' + str(i) + '.txt'))
+
 
 
 if __name__ == '__main__':
