@@ -205,31 +205,42 @@ def fill_folder_with_facetlists(path, name, thresholdlist):
 
 
 if __name__ == '__main__':
-
+    # Instruction : Change the array for the thresholdlist. Keep in mind that it depends on the type of filter that you
+    # are going to use later on.
     thresholdlist = np.linspace(0.001, 0.01, 1000)
     thresholdlist = np.arange(0.1, 0.9, 0.01)
+
+    # Instruction : Change path / index that we're going to use to name the filtered instances using the thresholds from the threshold
+    # list.
     i = 1
     path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
     proportions = []
+
+    # In this loop, we generate filtered instances of the complete cooccurrence matrix using the thresholds from
+    # threshold list. Once this loop has been run, running it again is a waste and should be put in commentary
     #for thresh in thresholdlist:
+         # Instruction : Change the path to the original matrix, and the appropriate skiprows / usecols
     #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     #    mat = normalize_columns(matrix1)
+         # Instruction : Change the filter function so it remains coherent with the filter used.
     #    matrix = matrix_filter_sum_to_prop(mat, prop_threshold=thresh)
     #    print(matrix == mat)
     #    matrix = reduce_matrix(matrix)
     #    to_nx_edge_list_format(matrix, out_name=path+str(i)+'.txt')
     #    i += 1
+
+    # Instruction : If the previous loop is disabled (commentary) you need to manually enter the range of the indices of
+    # the filtered instances in the np.arange below. Otherwise, just put i as in np.arange(1, i).
     ilist = np.arange(1, 10001)
     thresholdlist = thresholdlist[:len(ilist)]
 
-    data = np.load(path + '001-02-10000-dimskel3' + '.npz')
-    bettiarr = data['arr_0']
-    thresholdlist = data['arr_1']
-
     for i in ilist:
+        # Instruction : If the loop was
         #to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
         #to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
         proportions.append(proportion_of_species(path+'facet'+'pruned'+str(i)+'.txt'))
+    # bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 3)
+    # np.savez(path+'01-08-001', bettiarr, thresholdlist)
 
     plt.plot(thresholdlist, proportions)
     plt.show()
