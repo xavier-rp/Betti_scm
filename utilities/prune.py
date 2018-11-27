@@ -57,13 +57,13 @@ def to_pruned_file(path, outpath):
         stringtowrite = ''
         listfacetlength = []
         for facet in prune(facet_list):
-            print(" ".join([str(v) for v in facet]))
+            #print(" ".join([str(v) for v in facet]))
             dumbstring = " ".join([str(v) for v in facet])
-            print(len(dumbstring.split()))
-            listfacetlength.append(len(dumbstring.split()))
+            #print(len(dumbstring.split()))
+            #listfacetlength.append(len(dumbstring.split()))
 
             stringtowrite = stringtowrite + " ".join([str(v) for v in facet]) + '\n'
-        print('The mean facet length is : ', np.mean(np.array(listfacetlength)))
+        #print('The mean facet length is : ', np.mean(np.array(listfacetlength)))
 
         ### Instruction : Change the path and name of the saved file here :
         with open(outpath, 'w') as outfile:
