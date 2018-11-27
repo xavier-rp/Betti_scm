@@ -66,7 +66,11 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
 
             # This function has to be launched in order to compute the Betti numbers
             sk.persistence()
-            bettilist.append(sk.betti_numbers())
+            bettis = sk.betti_numbers()
+            if len(bettis) < highest_dim:
+                bettis.extend(0 for i in range(highest_dim - len(bettis)))
+            bettilist.append(bettis)
+            np.save(save_path + '_bettilist', np.array(bettilist))
 
     # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
     # the highest Bettis we were expecting by setting highest_dim. In this case, however, the Bettis that were not
@@ -77,6 +81,7 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
     length_longest_sublist = max(len(l) for l in bettilist)
     for sublist in bettilist:
         if len(sublist) < length_longest_sublist:
+            print('HERE')
             sublist.extend(0 for i in range(length_longest_sublist - len(sublist)))
 
     return np.array(bettilist)
@@ -150,7 +155,7 @@ def plot_betti_persistence(bettiarray, threshold_array, sumfilt=True):
 
     plt.show()
 
-def proportion_of_species(path, maxnumber=2611):
+def proportion_of_species(path_pruned, maxnumber=2611):
     """
     This function finds the proportion of species that are considered in a filtration of the biadjacency matrix.
     To do so, it uses the pruned facet list associated with this filtration and finds the highest node index.
@@ -169,7 +174,7 @@ def proportion_of_species(path, maxnumber=2611):
 
     nodes_indices = []
 
-    with open(path) as f:
+    with open(path_pruned) as f:
         for l in f:
             nodes_indices.append(max([int(x) for x in l.strip().split()]))
 
@@ -178,81 +183,105 @@ def proportion_of_species(path, maxnumber=2611):
 
     return number_of_species/maxnumber
 
+def find_original_number_of_species(path_to_original_matrix, skip_rows=0, use_cols=range(1,39)):
+    """
+    Find the total number of species in the original matrix
+    Parameters
+    ----------
+    path_to_original_matrix (str) : Path to the original matrix
+    skip_rows (int) : Number of rows to be skipped, ideally 0
+    use_cols (range) : Column to use ideally all
+
+    Returns The total number of species.
+    -------
+
+    """
+
+    matrix = np.loadtxt(path_to_original_matrix, skiprows=0, usecols=range(1, 39))
+
+    return matrix.shape[0]
+
+
 def plot_species_prop(proportions, thresholdlist):
 
     plt.plot(thresholdlist, proportions)
     plt.xlabel('Threshold')
     plt.ylabel('Species proportion %')
 
-def fill_folder_with_facetlists(path, name, thresholdlist):
+def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, skip_row=0, use_col=range(1, 39), func='sum'):
+    """
+    This function generates filtered instances from a complete matrix and a threshold list. It transforms the matrix into
+    a filtered edgelist, then a facet list, then a pruned facet list. It also computes the proportion
+    Parameters
+    ----------
+    path_to_matrix (str) : Path to the complete cooccurrence matrix
+    save_path (str) : Path and name of the isntances (ex : blabla/bla/instance )
+    thresholdlist (list of float) : List of thresholds to be used to filter the matrix
+    skip_row (int) : Number of rows to skip in the complete matrix. For final_OTU, use skiprows=0; SubOtu4000 use skiprows=1
+    use_col (range) : range of column to use. For final_OTU use usecols=range(1, 39); SubOtu4000 use range(1, 35)
+    func (str) : Either 'sum' or 'thresh'. If 'sum' we use the matrix_filter_sum_to_prop() function. If it's 'thresh' we
+                 use the function matrix_filter()
+
+    Returns None ; It saves the filtered instances the same folder specified by path
+    -------
+
+    """
     i = 1
-    proportions = []
     for thresh in thresholdlist:
-       matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-       mat = normalize_columns(matrix1)
-       matrix = matrix_filter_sum_to_prop(mat, prop_threshold=thresh)
-       print(matrix == mat)
-       matrix = reduce_matrix(matrix)
-       to_nx_edge_list_format(matrix, out_name=path+str(i)+'.txt')
-       i += 1
+        print('Working on threshold ', i, ' which value is ', thresh)
+        matrix1 = np.loadtxt(path_to_matrix, skiprows=skip_row, usecols=use_col)
+        mat = normalize_columns(matrix1)
+        if func == 'sum':
+            matrix = matrix_filter_sum_to_prop(mat, prop_threshold=thresh)
+        elif func == 'thresh':
+            matrix = matrix_filter(mat, thresh)
+        matrix = reduce_matrix(matrix)
+        to_nx_edge_list_format(matrix, out_name=save_path+str(i)+'.txt')
+        i += 1
     ilist = np.arange(1, i)
 
     for i in ilist:
-        to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
-        to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
-        proportions.append(proportion_of_species(path + 'facet' + 'pruned' + str(i) + '.txt'))
-
+        to_max_facet(save_path+str(i)+'.txt', 1, save_path+'facet'+str(i)+'.txt')
+        to_pruned_file(save_path+'facet'+str(i)+'.txt', save_path+'facet'+'pruned'+str(i)+'.txt')
 
 
 if __name__ == '__main__':
     # Instruction : Change the array for the thresholdlist. Keep in mind that it depends on the type of filter that you
     # are going to use later on.
-    thresholdlist = np.linspace(0.001, 0.01, 1000)
-    thresholdlist = np.arange(0.1, 0.9, 0.01)
 
-    # Instruction : Change path / index that we're going to use to name the filtered instances using the thresholds from the threshold
-    # list.
-    i = 1
-    path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
+    thresholdlist = np.linspace(0.001, 0.01, 1000)
+    thresholdlist = np.arange(0.1, 1, 0.01)
+    ilist = np.arange(1, len(thresholdlist) + 1)
+
+    # Instruction :  Change path / index that we're going to use to name the filtered instances using the thresholds from the threshold list
+    save_path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
     proportions = []
 
-    # In this loop, we generate filtered instances of the complete cooccurrence matrix using the thresholds from
-    # threshold list. Once this loop has been run, running it again is a waste and should be put in commentary
-    #for thresh in thresholdlist:
-         # Instruction : Change the path to the original matrix, and the appropriate skiprows / usecols
-    #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    #    mat = normalize_columns(matrix1)
-         # Instruction : Change the filter function so it remains coherent with the filter used.
-    #    matrix = matrix_filter_sum_to_prop(mat, prop_threshold=thresh)
-    #    print(matrix == mat)
-    #    matrix = reduce_matrix(matrix)
-    #    to_nx_edge_list_format(matrix, out_name=path+str(i)+'.txt')
-    #    i += 1
-
-    # Instruction : If the previous loop is disabled (commentary) you need to manually enter the range of the indices of
-    # the filtered instances in the np.arange below. Otherwise, just put i as in np.arange(1, i).
-    ilist = np.arange(1, 10001)
-    thresholdlist = thresholdlist[:len(ilist)]
+    # Once this function has been run, running it again is a waste and should be put in commentary
+    # Instruction : Change the parameters so they are coherent with what is desired. / If the folder is already full of
+    # generated instances put in commentary
+    fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist)
 
     for i in ilist:
-        # Instruction : If the loop was
-        #to_max_facet(path+str(i)+'.txt', 1, path+'facet'+str(i)+'.txt')
-        #to_pruned_file(path+'facet'+str(i)+'.txt', path+'facet'+'pruned'+str(i)+'.txt')
-        proportions.append(proportion_of_species(path+'facet'+'pruned'+str(i)+'.txt'))
-    # bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 3)
-    # np.savez(path+'01-08-001', bettiarr, thresholdlist)
+        proportions.append(proportion_of_species(save_path + 'facet' + 'pruned' + str(i) + '.txt'))
 
     plt.plot(thresholdlist, proportions)
     plt.show()
-    #bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], path+'facetpruned', 3)
 
+    #Once we have every instances (with fill_folder_with_facetlists()) we can compute the betti numbers of the instances.
+    #np.save(save_path+'_thresholdlist', thresholdlist)
+    #bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path+'facetpruned', 3)
+
+    exit()
     #np.savez(path+'01-08-001', bettiarr, thresholdlist)
 
 
-    data = np.load(path + '001-02-10000-dimskel3' +'.npz')
+    # Instruction : Load the data for the bar code and change the argument of the function plot_betti_persistence so they
+    #               are coherent with the filter that was used
+    data = np.load(save_path + '001-02-10000-dimskel3' +'.npz')
     bettiarr = data['arr_0']
     thresholdlist = data['arr_1']
-    plot_betti_persistence(bettiarr, thresholdlist, sumfilt=False)
+    plot_betti_persistence(bettiarr, thresholdlist, sumfilt=True)
 
 
 
