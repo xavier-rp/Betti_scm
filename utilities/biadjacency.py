@@ -33,7 +33,7 @@ def to_nx_edge_list_format(filename_or_matrix='SubOtu4000.txt', out_name='edgeli
     if isinstance(filename_or_matrix, str):
         ### Instruction : skiprows and usecols have to be updated depending on the file you use
         # Skiprows and usecols have to be adjusted depending on the file used.
-        # For final_OUT, use skiprows=0 and usecols=range(1,39)
+        # For final_OTU, use skiprows=0 and usecols=range(1,39)
         # For SubOtu4000 use skiprows=1 and usecols=range(1,35)
         mat = np.loadtxt(filename_or_matrix, skiprows=1, usecols=range(1, 35))
     else:
