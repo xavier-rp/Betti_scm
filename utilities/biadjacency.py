@@ -42,7 +42,7 @@ def to_nx_edge_list_format(filename_or_matrix='SubOtu4000.txt', out_name='edgeli
 
     #Necessary to be able to use the networkX function
     A = sp.sparse.csr_matrix(mat)
-    print(A)
+    #print(A)
     G = nx.algorithms.bipartite.from_biadjacency_matrix(A)
     nx.write_edgelist(G, out_name, data=False)
 
@@ -182,7 +182,7 @@ def matrix_filter_sum_to_prop(matrix, prop_threshold=0.5, allow_ties=True, saven
         # them to zero. If allow_ties is False, we take the '' n '' elements that are equal and that would have made
         # the program burst the threshold in the same way and pick one of them at random.
         while i < len(thresholdlist):
-            print(thresholdlist[i])
+            #print(thresholdlist[i])
             if len(np.where(matrix[:, i] == thresholdlist[i])) == 1:
                 low_values_flags = matrix[:, i] < thresholdlist[i]
                 matrix[low_values_flags, i] = 0
@@ -200,11 +200,11 @@ def matrix_filter_sum_to_prop(matrix, prop_threshold=0.5, allow_ties=True, saven
                     matrix[idx, i] = 0
                     k += 1
 
-            print(nb_elements_in_column - np.count_nonzero(low_values_flags))
+            #print(nb_elements_in_column - np.count_nonzero(low_values_flags))
             i += 1
-        print(np.count_nonzero(matrix))
+        #print(np.count_nonzero(matrix))
         matrix = normalize_columns(matrix)
-        print(np.count_nonzero(matrix))
+        #print(np.count_nonzero(matrix))
         return matrix
 
 
