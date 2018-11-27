@@ -120,7 +120,7 @@ def to_max_facet(path, col, outpath):
         stringtowrite = ''
         listfacetlength = []
         for max_facet in facet_generator(edge_list, args.col):
-            print(" ".join([str(v) for v in sorted(max_facet)]))
+            # print(" ".join([str(v) for v in sorted(max_facet)]))
             stringtowrite = stringtowrite + " ".join([str(v) for v in sorted(max_facet)]) + '\n'
 
         ### Instruction : change the path or the filename to make sure you don't overwrite
