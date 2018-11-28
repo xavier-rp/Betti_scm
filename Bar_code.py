@@ -11,7 +11,8 @@ from utilities.prune import to_pruned_file
 def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
     """
     This function returns an array in which the columns are the Betti numbers and the lines are the filtered facet list
-    of a bipartite graph.
+    of a bipartite graph. The function automatically saves the betti at each iteration in case one iteration bugs. This
+    way they are not lost.
 
     Parameters
     ----------
@@ -67,22 +68,27 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # This function has to be launched in order to compute the Betti numbers
             sk.persistence()
             bettis = sk.betti_numbers()
+            # See Note below to understand this condition
             if len(bettis) < highest_dim:
                 bettis.extend(0 for i in range(highest_dim - len(bettis)))
             bettilist.append(bettis)
             np.save(save_path + '_bettilist', np.array(bettilist))
 
+
+    # NOTE :
     # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
     # the highest Bettis we were expecting by setting highest_dim. In this case, however, the Bettis that were not
     # computed are necessarily zero, since the dimension of the facets does not allow the formation of higher dimensional
     # voids. For example, if there cannot be tetrahedrons, Betti 3 is necesserily zero, because we cannot glue tetrahedrons
     # together and create a 4 dimensional void. The following loop adds zeros to the Bettis that were not computed if
     # such a situation arises and ensures that there a no issues in the construction/dimensions of the returned numpy array.
-    length_longest_sublist = max(len(l) for l in bettilist)
-    for sublist in bettilist:
-        if len(sublist) < length_longest_sublist:
-            print('HERE')
-            sublist.extend(0 for i in range(length_longest_sublist - len(sublist)))
+
+    # TODO : delete if the condition works
+    #length_longest_sublist = max(len(l) for l in bettilist)
+    #for sublist in bettilist:
+    #    if len(sublist) < length_longest_sublist:
+    #        print('HERE')
+    #        sublist.extend(0 for i in range(length_longest_sublist - len(sublist)))
 
     return np.array(bettilist)
 
@@ -262,26 +268,29 @@ if __name__ == '__main__':
     # generated instances put in commentary
     fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist)
 
+
+    # This loop computes the proportion of species we are considering for each threshold
     for i in ilist:
         proportions.append(proportion_of_species(save_path + 'facet' + 'pruned' + str(i) + '.txt'))
 
+    # Simply plot the relation between the threshold used and the proportion of species.
     plt.plot(thresholdlist, proportions)
     plt.show()
 
     #Once we have every instances (with fill_folder_with_facetlists()) we can compute the betti numbers of the instances.
-    #np.save(save_path+'_thresholdlist', thresholdlist)
-    #bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path+'facetpruned', 3)
+    #This function automatically saves the Betti numbers it computes for each threshold.
+    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 3)
+
+    np.save(save_path+'_thresholdlist', thresholdlist)
 
     exit()
-    #np.savez(path+'01-08-001', bettiarr, thresholdlist)
 
-
+    # Instruction : If data has to be loaded up, use the following code as an example.
     # Instruction : Load the data for the bar code and change the argument of the function plot_betti_persistence so they
     #               are coherent with the filter that was used
-    data = np.load(save_path + '001-02-10000-dimskel3' +'.npz')
-    bettiarr = data['arr_0']
-    thresholdlist = data['arr_1']
-    plot_betti_persistence(bettiarr, thresholdlist, sumfilt=True)
+    bettiarr = np.load(save_path + '_bettilist.npy')
+    thresholdlist = np.load(save_path + '_thresholdlist.py')
+    plot_betti_persistence(bettiarr, thresholdlist[:bettiarr.shape[0]], sumfilt=True)
 
 
 
