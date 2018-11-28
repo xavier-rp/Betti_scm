@@ -23,7 +23,8 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
     path (str) : path of the files we want to analyse. Do not put the extension (.txt will be added by default) and do
                  not specify the index (automatically added in a loop using range(first_index, last_index+1).
     highest_dim (int) : Dimension of the largest facet allowed / Dimension of the j-skeleton used to compute the Betti
-                        numbers (see GUDHI's documentation on skeleton). If a facet of dimension higher than highest_dim
+                        numbers (see The Simplex Tree: An Efficient Data Structure for General Simplicial Complexes by
+                        Boissonat, Maria for information about j-skeletons). If a facet of dimension higher than highest_dim
                         exists in the facet list, it will be decomposed in its N choose highest_dim facets. This number
                         limits which Betti numbers can be computed (for instance if highest_dim == 2, only Betti 0 and 1
                         can be computed).
@@ -252,6 +253,12 @@ def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, skip_r
 
 
 if __name__ == '__main__':
+    save_path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
+    bettiarr = np.load(save_path + '_bettilist.npy')
+    thresholdlist = np.load(save_path + '_thresholdlist.npy')
+    plot_betti_persistence(bettiarr, thresholdlist[:bettiarr.shape[0]], sumfilt=True)
+
+    exit()
     # Instruction : Change the array for the thresholdlist. Keep in mind that it depends on the type of filter that you
     # are going to use later on.
 
@@ -277,11 +284,13 @@ if __name__ == '__main__':
     plt.plot(thresholdlist, proportions)
     plt.show()
 
+    np.save(save_path + '_thresholdlist', thresholdlist)
+
     #Once we have every instances (with fill_folder_with_facetlists()) we can compute the betti numbers of the instances.
     #This function automatically saves the Betti numbers it computes for each threshold.
-    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 3)
+    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 4)
 
-    np.save(save_path+'_thresholdlist', thresholdlist)
+
 
     exit()
 
@@ -289,7 +298,7 @@ if __name__ == '__main__':
     # Instruction : Load the data for the bar code and change the argument of the function plot_betti_persistence so they
     #               are coherent with the filter that was used
     bettiarr = np.load(save_path + '_bettilist.npy')
-    thresholdlist = np.load(save_path + '_thresholdlist.py')
+    thresholdlist = np.load(save_path + '_thresholdlist.npy')
     plot_betti_persistence(bettiarr, thresholdlist[:bettiarr.shape[0]], sumfilt=True)
 
 
