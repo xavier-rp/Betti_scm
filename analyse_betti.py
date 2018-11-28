@@ -74,8 +74,6 @@ def compute_betti(facetlist, highest_dim):
     """
 
     st = gudhi.SimplexTree()
-    i = 0
-    #print('FACETLIST : ', facetlist)
     for facet in facetlist:
 
         # This condition and the loop it contains break a facet in all its n choose k faces. This is more
@@ -86,7 +84,7 @@ def compute_betti(facetlist, highest_dim):
                 st.insert(face)
         else:
             st.insert(facet)
-        i += 1
+
 
     # This function has to be launched in order to compute the Betti numbers
     st.persistence()
@@ -94,9 +92,26 @@ def compute_betti(facetlist, highest_dim):
     return st.betti_numbers()
 
 def compute_and_store_bettis(path, highest_dim, save_path):
+    """
+    Computes and saves the bettis numbers of the j-skeleton (j = highest_dim) of a facetlist stored in a .txt file.
+
+    Parameters
+    ----------
+    path (str) : Path to the facetlist stored in a txt file. The shape of the data correspond to the shape of the outputs
+                 of the null_model.py module.
+    highest_dim (int) : Highest dimension allowed for the facets. If a facet is of higher dimension in the facet list,
+                        the algorithm breaks it down into it's N choose k faces. The resulting simplicial complexe is
+                        called the j-skeleton, where j = highest_dim. See The Simplex Tree: An Efficient Data Structure
+                        for General Simplicial Complexes by Boissonat, Maria for information about j-skeletons.
+    save_path (str) : Path where to save the bettinumbers (npy file)
+
+    Returns
+    -------
+
+    """
     bettilist = []
     facetlist = []
-
+    print('Working on ' + path)
     with open(path, 'r') as file:
         for l in file:
             facetlist.append([int(x) for x in l.strip().split()])
@@ -105,11 +120,27 @@ def compute_and_store_bettis(path, highest_dim, save_path):
         if len(bettis) < highest_dim:
             bettis.extend(0 for i in range(highest_dim - len(bettis)))
         bettilist.append(bettis)
-        print('icit ', bettis)
         np.save(save_path + '_bettilist', np.array(bettilist))
 
 
 def compute_and_store_bettis_from_instances(instance_path, idx_range, highest_dim, save_path):
+    """
+    Computes and saves the bettis numbers of the j-skeletons (j = highest_dim) of many facetlist generated with null_model.py
+    and stored in .json files.
+    Parameters
+    ----------
+    instance_path (str) : path to the instance, must not include the index of the instance nor its extension (added automatically)
+    idx_range (range) : range of the indices of the instances
+    highest_dim (int) : Highest dimension allowed for the facets. If a facet is of higher dimension in the facet list,
+                        the algorithm breaks it down into it's N choose k faces. The resulting simplicial complexe is
+                        called the j-skeleton, where j = highest_dim. See The Simplex Tree: An Efficient Data Structure
+                        for General Simplicial Complexes by Boissonat, Maria for information about j-skeletons.
+    save_path (str) : path where to save the array of betti numbers.
+
+    Returns
+    -------
+
+    """
 
     bettilist = []
 
@@ -147,32 +178,33 @@ def plot_betti_dist(bettiarray_instance, bettiarray_data):
     plt.show()
 
 if __name__ == '__main__':
+    # Instruction : Change the path to the instances. Must not contain the index nor the extension of the file (added
+    #               automatically in a function)
     instance_path = '/home/xavier/Documents/Projet/Betti_scm/crime/alice1_crime_instance'
 
+    # Instruction : Change the path to the original data. This path must be complete (with the extension)
     data_path = '/home/xavier/Documents/Projet/Betti_scm/datasets/facet_list_c1_as_simplices.txt'
 
+    # Instruction : Change the range so it matches the indices of the instances that we want to process
     idx_range = range(1,101)
 
+    # Instruction : Change the dimension of the j-skeleton used to compute Betti numbers
     highest_dim = 2
 
+    # Instruction : Change the path where you save the Betti numbers of the instances
     savepath_betti_instance = instance_path
 
+    # Instruction : Change the path where you save the Betti numbers of the original dataset
     savepath_betti_data = '/home/xavier/Documents/Projet/Betti_scm/datasets/facet_list_c1_as_simplicestest'
 
     compute_and_store_bettis_from_instances(instance_path, idx_range, highest_dim, savepath_betti_instance)
 
     compute_and_store_bettis(data_path, highest_dim, savepath_betti_data)
 
-
     bettiarray_instance = np.load(savepath_betti_instance + '_bettilist.npy')
     bettiarray_data = np.load(savepath_betti_data + '_bettilist.npy')
 
     plot_betti_dist(bettiarray_instance, bettiarray_data)
-
-
-
-
-
 
     """
     #OLD CODE, MIGHT STIL BE USEFULL
