@@ -166,13 +166,19 @@ def matrix_filter_sum_to_prop(matrix, prop_threshold=0.5, allow_ties=True, saven
         total_sum = 0
         j = 0
         # Sum the elements of the column until we burst the threshold
-        while total_sum < prop_threshold:
-            total_sum += sorted_column[j]
-            j += 1
+        if prop_threshold < 1.0 :
+            while total_sum < prop_threshold:
+                total_sum += sorted_column[j]
+                j += 1
 
-        # We add the last element added to a threshold list that we are going to use to set every elements lower than
-        # this value in the column to zero
-        thresholdlist.append(sorted_column[j-1])
+            # We add the last element added in the sum to a list. We're going to use this element to set every other element
+            # lower thant this value in the column to zero
+            thresholdlist.append(sorted_column[j - 1])
+        else:
+            thresholdlist.append(sorted_column[-1])
+
+
+
 
         i += 1
     nb_elements_in_column = len(matrix[:, i-1])
