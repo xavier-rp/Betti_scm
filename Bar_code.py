@@ -36,7 +36,7 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
     """
 
     bettilist =[]
-
+    print('SIMPLEXTREE')
     for idx in range(first_index, last_index+1):
         site_facet_list = []
         with open(path + str(idx) + '.txt', 'r') as file:
@@ -61,14 +61,17 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # only compute Betti numbers lower than d. The dimension of the skeleton has to be coherent with the
             # dimension of the largest facet allowed, meaning that if we break a facet into its N choose K faces, where
             # K == 3, than the dimension of the skeleton has to be d <= K-1
-            skel = st.get_skeleton(highest_dim)
-            sk = gudhi.SimplexTree()
-            for tupl in skel:
-                sk.insert(tupl[0])
+
+            print('Can get here : ')
+            exit()
+            #skel = st.get_skeleton(highest_dim)
+            #sk = gudhi.SimplexTree()
+            #for tupl in skel:
+            #    sk.insert(tupl[0])
 
             # This function has to be launched in order to compute the Betti numbers
-            sk.persistence()
-            bettis = sk.betti_numbers()
+            #sk.persistence()
+            bettis = st.betti_numbers()
             # See Note below to understand this condition
             if len(bettis) < highest_dim:
                 bettis.extend(0 for i in range(highest_dim - len(bettis)))
@@ -253,21 +256,23 @@ def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, skip_r
 
 
 if __name__ == '__main__':
-    save_path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
-    bettiarr = np.load(save_path + '_bettilist.npy')
-    thresholdlist = np.load(save_path + '_thresholdlist.npy')
-    plot_betti_persistence(bettiarr, thresholdlist[:bettiarr.shape[0]], sumfilt=True)
+    start_time = time.time()
+    #save_path = '/home/xavier/Documents/Projet/Betti_scm/final_otu_instance'
+    #bettiarr = np.load(save_path + '_bettilist.npy')
+    #thresholdlist = np.load(save_path + '_thresholdlist.npy')
+    #print(thresholdlist[bettiarr.shape[0]-1])
+    #plot_betti_persistence(bettiarr, thresholdlist[:bettiarr.shape[0]], sumfilt=True)
 
-    exit()
+    #exit()
     # Instruction : Change the array for the thresholdlist. Keep in mind that it depends on the type of filter that you
     # are going to use later on.
 
-    thresholdlist = np.linspace(0.001, 0.01, 1000)
     thresholdlist = np.arange(0.1, 1, 0.01)
+    thresholdlist = [1.0]
     ilist = np.arange(1, len(thresholdlist) + 1)
 
     # Instruction :  Change path / index that we're going to use to name the filtered instances using the thresholds from the threshold list
-    save_path = '/home/xavier/Documents/Projet/Betti_scm/persistencetest/simpletest'
+    save_path = '/home/xavier/Documents/Projet/Betti_scm/persistencesumfilt'
     proportions = []
 
     # Once this function has been run, running it again is a waste and should be put in commentary
@@ -282,6 +287,7 @@ if __name__ == '__main__':
 
     # Simply plot the relation between the threshold used and the proportion of species.
     plt.plot(thresholdlist, proportions)
+    plt.plot([0.93, 0.93], [0, 1])
     plt.show()
 
     np.save(save_path + '_thresholdlist', thresholdlist)
@@ -291,7 +297,7 @@ if __name__ == '__main__':
     bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 4)
 
 
-
+    print('Time taken : ', time.time() - start_time)
     exit()
 
     # Instruction : If data has to be loaded up, use the following code as an example.
