@@ -2,11 +2,7 @@ import subprocess as sp
 import networkx as nx
 import time
 import json
-import pickle
-from networkx.algorithms import bipartite
-import random
-import matplotlib.pyplot as plt
-import seaborn as sns  # for aesthetic
+
 """
 Author: Jean-Gabriel Young <info@jgyoung.ca>
 Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
