@@ -3,6 +3,8 @@
 import networkx as nx
 import gudhi
 import numpy as np
+import scipy as sp
+import scipy.misc
 import simplicial
 import json
 import pickle
@@ -120,6 +122,7 @@ def compute_and_store_bettis(path, highest_dim, save_path):
         if len(bettis) < highest_dim:
             bettis.extend(0 for i in range(highest_dim - len(bettis)))
         bettilist.append(bettis)
+        print(bettis)
         np.save(save_path + '_bettilist', np.array(bettilist))
 
 
@@ -177,13 +180,122 @@ def plot_betti_dist(bettiarray_instance, bettiarray_data):
 
     plt.show()
 
+def highest_possible_betti(facetlist):
+
+    # Sort the facet list by ascending order of facet size
+    facetlist.sort(key=len)
+
+    # This loop counts the number of facets of size 1
+    i = 0
+    while i < len(facetlist):
+        if len(facetlist[i]) != 1:
+            break
+        i += 1
+    # If we only have facets of size 1, there are no facets bigger than 1
+    if i == len(facetlist):
+        facets_bigger_than_one = []
+    # If the previous loop broke at
+    else:
+        facets_bigger_than_one = facetlist[i:]
+
+    length = len(facets_bigger_than_one)
+    if length >= 3:
+        min_size = len(facets_bigger_than_one[0])
+        max_size = len(facets_bigger_than_one[-1])
+
+        nb_facets_histogram_by_size = []
+        size_list = []
+        count_list = []
+        previous_facet = facets_bigger_than_one[0]
+        i = 1
+        count = 0
+        # This loop counts the number of facets of the same size and stores them in a list [size, count] that is
+        # also stored in a list (nb_facets_histogram_by_size)
+        while i < length:
+            present_facet = facets_bigger_than_one[i]
+            if len(previous_facet) == len(present_facet):
+                count += 1
+            else:
+                count += 1
+                nb_facets_histogram_by_size.append([len(previous_facet), count])
+                size_list.append(len(previous_facet))
+                count_list.append(count)
+                count = 0
+            previous_facet = present_facet
+            i += 1
+        count += 1
+        nb_facets_histogram_by_size.append([len(previous_facet), count])
+        size_list.append(len(previous_facet))
+        count_list.append(count)
+        size_list = np.array(size_list)
+        count_list = np.array(count_list)
+
+
+        # If there are N facets, we can, in theory, have a non zero Betti N-2, provided that these N facets have
+        # a minimum size of N - 1.
+        # Therefore : If the maximal size that we can find in the list is lower than the minimum size (i.e. lower than
+        # N-1) required to have a non zero Betti N - 2, we know that all the Betti numbers > max_size - 1 are zero.
+        # Indeed, to build Betti numbers of dimension 'd', we need facets of size d + 1. So if our max size is 'k' the
+        # first Betti number we need to look at is k - 1 (i.e. max_size - 1)
+        if max_size < length - 1:
+            considered_size = max_size
+        # If there are facets of size higher than or equal to the minimum size required to have a non zero Betti N - 2,
+        # the first Betti number we need to look at is built with facets of size N - 1 and bigger. This means that
+        # we don't have to look at the Betti numbers > N - 2, that would in principle be non trivial if we didn't know
+        # the number of facets
+        else:
+            considered_size = length - 1
+
+        i = 0
+        for sublist in nb_facets_histogram_by_size :
+            if sublist[0] >= considered_size:
+                break
+            # i is the index of the first sublist that matches the condition
+            i += 1
+
+        for size in np.arange(considered_size, 2, - 1):
+            nb_of_respecting_facets = np.sum(count_list[np.where(size_list >= size)])
+            if nb_of_respecting_facets >= size + 1:
+                break
+        betti = size - 1
+
+
+    else:
+        betti = 0
+
+    return betti
 if __name__ == '__main__':
     # Instruction : Change the path to the instances. Must not contain the index nor the extension of the file (added
     #               automatically in a function)
-    instance_path = '/home/xavier/Documents/Projet/Betti_scm/crime/alice1_crime_instance'
+    instance_path = '/home/xavier/Documents/Projet/Betti_scm/crime/crime_instance'
 
     # Instruction : Change the path to the original data. This path must be complete (with the extension)
-    data_path = '/home/xavier/Documents/Projet/Betti_scm/datasets/facet_list_c1_as_simplices.txt'
+    data_path = '/home/xavier/Documents/Projet/Betti_scm/datasets/crime_facet_list.txt'
+
+    #facetlist = []
+    #with open(data_path, 'r') as file:
+    #    for l in file:
+    #        facetlist.append([int(x) for x in l.strip().split()])
+    #print(len(facetlist[0]))
+    #exit()
+    #G, site_node_list = facet_list_to_bipartite(facetlist)
+
+    #sets = nx.algorithms.bipartite.sets(G, top_nodes=site_node_list)
+
+    #proj = nx.algorithms.projected_graph(G, sets[1])
+    #print(proj.number_of_edges())
+    #exit()
+    #pos = nx.spring_layout(proj)
+
+    #nx.draw_networkx(proj, pos=pos)
+    #nx.draw_networkx_nodes(G, pos, nodelist=sets[0], node_color='b', node_size=70)
+    #nx.draw_networkx_nodes(G, pos, nodelist=sets[1], node_color='r', node_size=90, node_shape='^')
+    #nx.draw_networkx_edges(G, pos)
+
+    #plt.show()
+
+
+    #print(proj.number_of_edges)
 
     # Instruction : Change the range so it matches the indices of the instances that we want to process
     idx_range = range(1,101)
