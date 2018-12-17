@@ -118,6 +118,9 @@ def compute_and_store_bettis(path, highest_dim, save_path):
         for l in file:
             facetlist.append([int(x) for x in l.strip().split()])
 
+        if highest_dim == 'max':
+            highest_dim = highest_possible_betti(facetlist)
+
         bettis = compute_betti(facetlist, highest_dim)
         if len(bettis) < highest_dim:
             bettis.extend(0 for i in range(highest_dim - len(bettis)))
@@ -150,8 +153,11 @@ def compute_and_store_bettis_from_instances(instance_path, idx_range, highest_di
     for idx in idx_range:
         with open(instance_path + str(idx) + '.json', 'r') as file :
             print('Working on ' + instance_path + str(idx) + '.json')
+            facetlist = json.load(file)
+            if highest_dim == 'max':
+                highest_dim = highest_possible_betti(facetlist)
 
-            bettis = compute_betti(json.load(file), highest_dim)
+            bettis = compute_betti(facetlist, highest_dim)
             if len(bettis) < highest_dim:
                 bettis.extend(0 for i in range(highest_dim - len(bettis)))
             bettilist.append(bettis)
