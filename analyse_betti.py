@@ -181,6 +181,24 @@ def plot_betti_dist(bettiarray_instance, bettiarray_data):
     plt.show()
 
 def highest_possible_betti(facetlist):
+    """
+    This function computes the dimension of the highest non trivial Betti number in a facet list (by dimension we mean
+    the index beside a Betti number, for example Betti 2 has a ' dimension ', although it corresponds to a 3 dimensional
+    void). It is usefull since, by default, GUDHI's simplex tree tend to compute the Betti numbers up to the
+    dimension - 1 of the highest dimensional facet in the list. As an example, if there is only one facet of size 38
+    (dimension 37), GUDHI tries to compute the Betti numbers from Betti 0 to Betti 36, which is unnecessary since there
+    is just ONE facet in our simplicial complex meaning that every Betti number higher than Betti 0 is trivial 0
+    (there cannot be holes!).
+    Parameters
+    ----------
+    facetlist (List of lists) : List that contains sublist. These sublists contain the indices of the nodes that are part
+                                of the facet (each sublist is a maximal facet).
+
+    Returns
+    -------
+    The dimension of the highest non trivial Betti number.
+
+    """
 
     # Sort the facet list by ascending order of facet size
     facetlist.sort(key=len)
@@ -246,14 +264,15 @@ def highest_possible_betti(facetlist):
         else:
             considered_size = length - 1
 
-        i = 0
-        for sublist in nb_facets_histogram_by_size :
-            if sublist[0] >= considered_size:
-                break
-            # i is the index of the first sublist that matches the condition
-            i += 1
-
-        for size in np.arange(considered_size, 2, - 1):
+        # This loop checks if there is a sufficient number of facets of a certain size (and higher than this certain size)
+        # to create a specific Betti number. The first size that respect this condition corresponds to our highest non
+        # trivial Betti number.
+        # We need to iterate over every size below the first ' considered size ' because we can encounter a situation
+        # where there are no facets of a certain size, but enough facets of higher size to create a betti number associated
+        # with this size. For example, in a facet list in which there is 1 facet of size 2, 3 facets if size 4 and 1 facet
+        # of size 5, we know that Betti 3 and Betti 2 are zero, but Betti 1 could be non zero since there are 4 facets
+        # of size >= 3.
+        for size in np.arange(considered_size, 1, - 1):
             nb_of_respecting_facets = np.sum(count_list[np.where(size_list >= size)])
             if nb_of_respecting_facets >= size + 1:
                 break
@@ -264,7 +283,19 @@ def highest_possible_betti(facetlist):
         betti = 0
 
     return betti
+
 if __name__ == '__main__':
+
+    #path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/unitest.txt'
+    #facetlist = []
+    #with open(path, 'r') as file:
+    #    for l in file:
+    #        facetlist.append([int(x) for x in l.strip().split()])
+
+    #print(highest_possible_betti(facetlist))
+
+    #exit()
+
     # Instruction : Change the path to the instances. Must not contain the index nor the extension of the file (added
     #               automatically in a function)
     instance_path = '/home/xavier/Documents/Projet/Betti_scm/crime/crime_instance'
