@@ -149,19 +149,29 @@ def compute_and_store_bettis_from_instances(instance_path, idx_range, highest_di
     """
 
     bettilist = []
-
+    highest_dim_param = highest_dim
+    highest_dim_list = []
     for idx in idx_range:
         with open(instance_path + str(idx) + '.json', 'r') as file :
             print('Working on ' + instance_path + str(idx) + '.json')
             facetlist = json.load(file)
-            if highest_dim == 'max':
+            if highest_dim_param == 'max':
                 highest_dim = highest_possible_betti(facetlist)
+                highest_dim_list.append(highest_dim)
 
             bettis = compute_betti(facetlist, highest_dim)
-            if len(bettis) < highest_dim:
-                bettis.extend(0 for i in range(highest_dim - len(bettis)))
-            bettilist.append(bettis)
-            np.save(save_path + '_bettilist', np.array(bettilist))
+            if highest_dim_param != 'max':
+                if len(bettis) < highest_dim:
+                    bettis.extend(0 for i in range(highest_dim - len(bettis)))
+                bettilist.append(bettis)
+                np.save(save_path + '_bettilist', np.array(bettilist))
+            else:
+                bettilist.append(bettis)
+                for sublist in bettilist:
+                    if len(sublist) < max(highest_dim_list):
+                        sublist.extend(0 for i in range(max(highest_dim_list) - len(sublist)))
+                print('Bettis : ', bettis)
+                np.save(save_path + '_bettilist', np.array(bettilist))
 
 def plot_betti_dist(bettiarray_instance, bettiarray_data):
     """

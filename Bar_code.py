@@ -36,14 +36,17 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
 
     """
     bettilist =[]
+    highest_dim_param = highest_dim
+    highest_dim_list = []
     for idx in range(first_index, last_index+1):
         site_facet_list = []
         with open(path + str(idx) + '.txt', 'r') as file:
             print('Computing bettis for : ', path + str(idx) + '.txt')
             for l in file:
                 site_facet_list.append([int(x) for x in l.strip().split()])
-            if highest_dim == 'max':
+            if highest_dim_param == 'max':
                 highest_dim = highest_possible_betti(site_facet_list)
+                highest_dim_list.append(highest_dim)
             st = gudhi.SimplexTree()
             i = 0
             for facet in site_facet_list:
@@ -73,12 +76,26 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # This function has to be launched in order to compute the Betti numbers
             st.persistence()
             bettis = st.betti_numbers()
-            # See Note below to understand this condition
-            if len(bettis) < highest_dim:
-                bettis.extend(0 for i in range(highest_dim - len(bettis)))
-            bettilist.append(bettis)
-            print('Bettis : ', bettis)
-            np.save(save_path + '_bettilist', np.array(bettilist))
+            if highest_dim_param != 'max':
+                # See Note below to understand this condition
+                if len(bettis) < highest_dim:
+                    bettis.extend(0 for i in range(highest_dim - len(bettis)))
+                bettilist.append(bettis)
+                print('Bettis : ', bettis)
+                np.save(save_path + '_bettilist', np.array(bettilist))
+            else:
+                # If we use highest_dim = 'max' as a parameter, we compute all the betti numbers up to the highest non
+                # trivial Betti number for a specific facetlist. Since compute Betti numbers for different facet list,
+                # they all have a different non trivial highest betti number. This loops thus adds zeros to the
+                # the list of already computed Betti numbers of the previous facet lists and ensures that at the end
+                # we have the same number of columns for each facet list.
+                bettilist.append(bettis)
+                for sublist in bettilist:
+                    if len(sublist) < max(highest_dim_list):
+                        sublist.extend(0 for i in range(max(highest_dim_list) - len(sublist)))
+                print('Bettis : ', bettis)
+                np.save(save_path + '_bettilist', np.array(bettilist))
+
 
 
     # NOTE :
