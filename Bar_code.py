@@ -7,6 +7,7 @@ import json
 from utilities.biadjacency import *
 from utilities.bipartite_to_max_facets import to_max_facet
 from utilities.prune import to_pruned_file
+from analyse_betti import highest_possible_betti
 
 def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
     """
@@ -34,15 +35,15 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
     -------
 
     """
-
     bettilist =[]
-    print('SIMPLEXTREE')
     for idx in range(first_index, last_index+1):
         site_facet_list = []
         with open(path + str(idx) + '.txt', 'r') as file:
             print('Computing bettis for : ', path + str(idx) + '.txt')
             for l in file:
                 site_facet_list.append([int(x) for x in l.strip().split()])
+            if highest_dim == 'max':
+                highest_dim = highest_possible_betti(site_facet_list)
             st = gudhi.SimplexTree()
             i = 0
             for facet in site_facet_list:
@@ -52,9 +53,9 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
                 if len(facet) > highest_dim+1:
                     for face in itertools.combinations(facet, highest_dim+1):
                         st.insert(face)
+
                 else:
                     st.insert(facet)
-                # print(i)
                 i += 1
 
             # Instruction : Change the dimension of the skeleton you want to use. From a skeleton of dimension d, we can
@@ -62,20 +63,21 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # dimension of the largest facet allowed, meaning that if we break a facet into its N choose K faces, where
             # K == 3, than the dimension of the skeleton has to be d <= K-1
 
-            print('Can get here : ')
-            exit()
+            #print('Can get here : ')
+            #exit()
             #skel = st.get_skeleton(highest_dim)
             #sk = gudhi.SimplexTree()
             #for tupl in skel:
             #    sk.insert(tupl[0])
 
             # This function has to be launched in order to compute the Betti numbers
-            #sk.persistence()
+            st.persistence()
             bettis = st.betti_numbers()
             # See Note below to understand this condition
             if len(bettis) < highest_dim:
                 bettis.extend(0 for i in range(highest_dim - len(bettis)))
             bettilist.append(bettis)
+            print('Bettis : ', bettis)
             np.save(save_path + '_bettilist', np.array(bettilist))
 
 
@@ -218,7 +220,7 @@ def plot_species_prop(proportions, thresholdlist):
     plt.xlabel('Threshold')
     plt.ylabel('Species proportion %')
 
-def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, skip_row=0, use_col=range(1, 39), func='sum'):
+def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, col=1, skip_row=0, use_col=range(1, 39), func='sum'):
     """
     This function generates filtered instances from a complete matrix and a threshold list. It transforms the matrix into
     a filtered edgelist, then a facet list, then a pruned facet list. It also computes the proportion
@@ -251,7 +253,7 @@ def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, skip_r
     ilist = np.arange(1, i)
 
     for i in ilist:
-        to_max_facet(save_path+str(i)+'.txt', 1, save_path+'facet'+str(i)+'.txt')
+        to_max_facet(save_path+str(i)+'.txt', col, save_path+'facet'+str(i)+'.txt')
         to_pruned_file(save_path+'facet'+str(i)+'.txt', save_path+'facet'+'pruned'+str(i)+'.txt')
 
 
@@ -267,18 +269,18 @@ if __name__ == '__main__':
     # Instruction : Change the array for the thresholdlist. Keep in mind that it depends on the type of filter that you
     # are going to use later on.
 
-    thresholdlist = np.arange(0.1, 1, 0.01)
-    thresholdlist = [1.0]
+    thresholdlist = np.arange(0.1, 0.7, 0.01)
+    #thresholdlist = [1.0]
     ilist = np.arange(1, len(thresholdlist) + 1)
 
     # Instruction :  Change path / index that we're going to use to name the filtered instances using the thresholds from the threshold list
-    save_path = '/home/xavier/Documents/Projet/Betti_scm/persistencesumfilt'
+    save_path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/species_as_facets'
     proportions = []
 
     # Once this function has been run, running it again is a waste and should be put in commentary
     # Instruction : Change the parameters so they are coherent with what is desired. / If the folder is already full of
     # generated instances put in commentary
-    fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist)
+    fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist, col=0)
 
 
     # This loop computes the proportion of species we are considering for each threshold
@@ -298,7 +300,7 @@ if __name__ == '__main__':
 
 
     print('Time taken : ', time.time() - start_time)
-    exit()
+    #exit()
 
     # Instruction : If data has to be loaded up, use the following code as an example.
     # Instruction : Load the data for the bar code and change the argument of the function plot_betti_persistence so they
