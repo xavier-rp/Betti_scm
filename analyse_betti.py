@@ -103,7 +103,6 @@ def compute_betti(facetlist, highest_dim):
     # If we could start at -1, it would be ok only with highest_dim + 3, but since we start at -2, we need to go one
     # index further, hence + 1.
     disconnected_facet = [label for label in np.arange(-2, -(highest_dim + 1 + 2), -1)]
-    print('disco ', disconnected_facet)
     st.insert(disconnected_facet)
 
 

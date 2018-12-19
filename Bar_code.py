@@ -80,15 +80,12 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # If we could start at -1, it would be ok only with highest_dim + 3, but since we start at -2, we need to go one
             # index further, hence + 1.
             disconnected_facet = [label for label in np.arange(-2, -(highest_dim + 1 + 2), -1)]
-            print('disco ', disconnected_facet)
             st.insert(disconnected_facet)
 
             # This function has to be launched in order to compute the Betti numbers
             st.persistence()
             bettis = st.betti_numbers()
             bettis[0] = bettis[0] - 1
-            if idx == 20 or idx == 24:
-                print('stop')
             print(bettis)
             if highest_dim_param != 'max':
                 # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
@@ -228,7 +225,7 @@ def find_original_number_of_species(path_to_original_matrix, skip_rows=0, use_co
 
     """
 
-    matrix = np.loadtxt(path_to_original_matrix, skiprows=0, usecols=range(1, 39))
+    matrix = np.loadtxt(path_to_original_matrix, skiprows=skip_rows, usecols=use_cols)
 
     return matrix.shape[0]
 
@@ -292,13 +289,13 @@ if __name__ == '__main__':
     ilist = np.arange(1, len(thresholdlist) + 1)
 
     # Instruction :  Change path / index that we're going to use to name the filtered instances using the thresholds from the threshold list
-    save_path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/species_as_facets'
+    save_path = '/home/xavier/Documents/Projet/Betti_scm/subotu/species_as_facets'
     proportions = []
 
     # Once this function has been run, running it again is a waste and should be put in commentary
     # Instruction : Change the parameters so they are coherent with what is desired. / If the folder is already full of
     # generated instances put in commentary
-    #fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist, col=0)
+    fill_folder_with_facetlists('/home/xavier/Documents/Projet/Betti_scm/SubOtu4000.txt', save_path, thresholdlist, col=0, skip_row=1, use_col=range(1, 35))
 
 
     # This loop computes the proportion of species we are considering for each threshold
@@ -314,7 +311,7 @@ if __name__ == '__main__':
 
     #Once we have every instances (with fill_folder_with_facetlists()) we can compute the betti numbers of the instances.
     #This function automatically saves the Betti numbers it computes for each threshold.
-    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 3)
+    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 'max')
 
 
     print('Time taken : ', time.time() - start_time)
