@@ -140,9 +140,19 @@ def compute_and_store_bettis(path, highest_dim, save_path):
 
         if highest_dim == 'max':
             # If we want to compute Betti N, we need the (N+1)-skeleton
+            # The highest dimensional facet that we want corresponds to the highest betti number we want to compute + 1
+            # As an example, if we can only compute Betti 1, we need to use the 2-skeleton (because if we use the
+            # 1-skeleton we transform full triangles in hollow triangles, which affects the 'True' number of holes.)
             highest_dim = highest_possible_betti(facetlist) + 1
 
         bettis = compute_betti(facetlist, highest_dim)
+
+        # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
+        # the highest Bettis we were expecting by setting highest_dim. In this case, however, the Bettis that were not
+        # computed are necessarily zero, since the dimension of the facets does not allow the formation of higher dimensional
+        # voids. For example, if there cannot be tetrahedrons, Betti 3 is necesserily zero, because we cannot glue tetrahedrons
+        # together and create a 4 dimensional void. The following loop adds zeros to the Bettis that were not computed if
+        # such a situation arises and ensures that there a no issues in the construction/dimensions of the returned numpy array.
         if len(bettis) < highest_dim:
             bettis.extend(0 for i in range(highest_dim - len(bettis)))
         bettilist.append(bettis)
@@ -178,11 +188,20 @@ def compute_and_store_bettis_from_instances(instance_path, idx_range, highest_di
             facetlist = json.load(file)
             if highest_dim_param == 'max':
                 # If we want to compute Betti N, we need the (N+1)-skeleton
+                # The highest dimensional facet that we want corresponds to the highest betti number we want to compute + 1
+                # As an example, if we can only compute Betti 1, we need to use the 2-skeleton (because if we use the
+                # 1-skeleton we transform full triangles in hollow triangles, which affects the 'True' number of holes.)
                 highest_dim = highest_possible_betti(facetlist) + 1
                 highest_dim_list.append(highest_dim)
                 print(highest_dim)
 
             bettis = compute_betti(facetlist, highest_dim)
+            # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
+            # the highest Bettis we were expecting by setting highest_dim. In this case, however, the Bettis that were not
+            # computed are necessarily zero, since the dimension of the facets does not allow the formation of higher dimensional
+            # voids. For example, if there cannot be tetrahedrons, Betti 3 is necesserily zero, because we cannot glue tetrahedrons
+            # together and create a 4 dimensional void. The following loop adds zeros to the Bettis that were not computed if
+            # such a situation arises and ensures that there a no issues in the construction/dimensions of the returned numpy array.
             if highest_dim_param != 'max':
                 if len(bettis) < highest_dim:
                     bettis.extend(0 for i in range(highest_dim - len(bettis)))

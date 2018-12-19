@@ -45,10 +45,11 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             for l in file:
                 site_facet_list.append([int(x) for x in l.strip().split()])
             if highest_dim_param == 'max':
+                # The highest dimensional facet that we want corresponds to the highest betti number we want to compute + 1
+                # As an example, if we can only compute Betti 1, we need to use the 2-skeleton (because if we use the
+                # 1-skeleton we transform full triangles in hollow triangles, which affects the 'True' number of holes.)
+
                 highest_dim = highest_possible_betti(site_facet_list) + 1
-                print(highest_dim)
-                #if highest_dim == 1:
-                #    highest_dim += 1
                 highest_dim_list.append(highest_dim)
             st = gudhi.SimplexTree()
             i = 0
@@ -63,22 +64,24 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
                 else:
                     st.insert(facet)
                 i += 1
+            # We need to add a facet that has a size equivalent to the Betti we want to compute + 2 because GUDHI cannot compute
+            # Betti N if there are no facets of size N + 2. As an example, if we take the 1-skeleton, there are, of course, no
+            # facet of size higher than 2 and does not compute Betti 1. As a result, highest_dim needs to be 1 unit higher than
+            # the maximum Betti number we want to compute. Moreover, we need to manually add a facet of size N + 2 (highest_dim + 1)
+            # for the case where there are no such facets in the original complex. As an example, if we have two empty triangles,
+            # GUDHI kinda assumes it's a 1-skeleton, and just compute Betti 0, although we would like to know that Betti 1 = 2.
+            # The only way, it seems, to do so it to add a facet of size N + 2 (highest_dim + 1)
+            # It also need to be disconnected from our simplicial complex because we don't want it to create unintentional holes.
+            # This has the effect to add a componant in the network, hence why we substract 1 from Betti 0 (see last line of the function)
 
+            # We add + 1 + 2 for the following reasons. First, we need a new facet of size highest_dim + 1 because of the reason
+            # above. The last number in arange is not considered (ex : np.arange(0, 3) = [0, 1, 2], so we need to add 1 again.
+            # Moreover, we cannot start at index 0 (because 0 is in the complex) nor -1 because GUDHI returns an error code 139.
+            # If we could start at -1, it would be ok only with highest_dim + 3, but since we start at -2, we need to go one
+            # index further, hence + 1.
             disconnected_facet = [label for label in np.arange(-2, -(highest_dim + 1 + 2), -1)]
             print('disco ', disconnected_facet)
             st.insert(disconnected_facet)
-
-            # Instruction : Change the dimension of the skeleton you want to use. From a skeleton of dimension d, we can
-            # only compute Betti numbers lower than d. The dimension of the skeleton has to be coherent with the
-            # dimension of the largest facet allowed, meaning that if we break a facet into its N choose K faces, where
-            # K == 3, than the dimension of the skeleton has to be d <= K-1
-
-            #print('Can get here : ')
-            #exit()
-            #skel = st.get_skeleton(highest_dim)
-            #sk = gudhi.SimplexTree()
-            #for tupl in skel:
-            #    sk.insert(tupl[0])
 
             # This function has to be launched in order to compute the Betti numbers
             st.persistence()
@@ -88,7 +91,12 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
                 print('stop')
             print(bettis)
             if highest_dim_param != 'max':
-                # See Note below to understand this condition
+                # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
+                # the highest Bettis we were expecting by setting highest_dim. In this case, however, the Bettis that were not
+                # computed are necessarily zero, since the dimension of the facets does not allow the formation of higher dimensional
+                # voids. For example, if there cannot be tetrahedrons, Betti 3 is necesserily zero, because we cannot glue tetrahedrons
+                # together and create a 4 dimensional void. The following loop adds zeros to the Bettis that were not computed if
+                # such a situation arises and ensures that there a no issues in the construction/dimensions of the returned numpy array.
                 if len(bettis) < highest_dim:
                     bettis.extend(0 for i in range(highest_dim - len(bettis)))
                 bettilist.append(bettis)
@@ -106,23 +114,6 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
                         sublist.extend(0 for i in range(max(highest_dim_list) - len(sublist)))
                 print('Bettis : ', bettis)
                 np.save(save_path + '_bettilist', np.array(bettilist))
-
-
-
-    # NOTE :
-    # Some filtered facet list might only contain facets smaller than highest_dim. In this case, GUDHI does not compute
-    # the highest Bettis we were expecting by setting highest_dim. In this case, however, the Bettis that were not
-    # computed are necessarily zero, since the dimension of the facets does not allow the formation of higher dimensional
-    # voids. For example, if there cannot be tetrahedrons, Betti 3 is necesserily zero, because we cannot glue tetrahedrons
-    # together and create a 4 dimensional void. The following loop adds zeros to the Bettis that were not computed if
-    # such a situation arises and ensures that there a no issues in the construction/dimensions of the returned numpy array.
-
-    # TODO : delete if the condition works
-    #length_longest_sublist = max(len(l) for l in bettilist)
-    #for sublist in bettilist:
-    #    if len(sublist) < length_longest_sublist:
-    #        print('HERE')
-    #        sublist.extend(0 for i in range(length_longest_sublist - len(sublist)))
 
     return np.array(bettilist)
 
