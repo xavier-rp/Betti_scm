@@ -45,7 +45,10 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             for l in file:
                 site_facet_list.append([int(x) for x in l.strip().split()])
             if highest_dim_param == 'max':
-                highest_dim = highest_possible_betti(site_facet_list)
+                highest_dim = highest_possible_betti(site_facet_list) + 1
+                print(highest_dim)
+                #if highest_dim == 1:
+                #    highest_dim += 1
                 highest_dim_list.append(highest_dim)
             st = gudhi.SimplexTree()
             i = 0
@@ -60,6 +63,10 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
                 else:
                     st.insert(facet)
                 i += 1
+
+            disconnected_facet = [label for label in np.arange(-2, -(highest_dim + 1 + 2), -1)]
+            print('disco ', disconnected_facet)
+            st.insert(disconnected_facet)
 
             # Instruction : Change the dimension of the skeleton you want to use. From a skeleton of dimension d, we can
             # only compute Betti numbers lower than d. The dimension of the skeleton has to be coherent with the
@@ -76,6 +83,10 @@ def compute_bettis_for_persistence(first_index, last_index, path, highest_dim):
             # This function has to be launched in order to compute the Betti numbers
             st.persistence()
             bettis = st.betti_numbers()
+            bettis[0] = bettis[0] - 1
+            if idx == 20 or idx == 24:
+                print('stop')
+            print(bettis)
             if highest_dim_param != 'max':
                 # See Note below to understand this condition
                 if len(bettis) < highest_dim:
@@ -276,17 +287,16 @@ def fill_folder_with_facetlists(path_to_matrix, save_path, thresholdlist, col=1,
 
 if __name__ == '__main__':
     start_time = time.time()
-    #save_path = '/home/xavier/Documents/Projet/Betti_scm/final_otu_instance'
+    #save_path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/species_as_facets'
     #bettiarr = np.load(save_path + '_bettilist.npy')
     #thresholdlist = np.load(save_path + '_thresholdlist.npy')
-    #print(thresholdlist[bettiarr.shape[0]-1])
     #plot_betti_persistence(bettiarr, thresholdlist[:bettiarr.shape[0]], sumfilt=True)
 
     #exit()
     # Instruction : Change the array for the thresholdlist. Keep in mind that it depends on the type of filter that you
     # are going to use later on.
 
-    thresholdlist = np.arange(0.1, 0.7, 0.01)
+    thresholdlist = np.arange(0.1, 1.0, 0.01)
     #thresholdlist = [1.0]
     ilist = np.arange(1, len(thresholdlist) + 1)
 
@@ -297,23 +307,23 @@ if __name__ == '__main__':
     # Once this function has been run, running it again is a waste and should be put in commentary
     # Instruction : Change the parameters so they are coherent with what is desired. / If the folder is already full of
     # generated instances put in commentary
-    fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist, col=0)
+    #fill_folder_with_facetlists('final_OTU.txt', save_path, thresholdlist, col=0)
 
 
     # This loop computes the proportion of species we are considering for each threshold
-    for i in ilist:
-        proportions.append(proportion_of_species(save_path + 'facet' + 'pruned' + str(i) + '.txt'))
+    #for i in ilist:
+    #    proportions.append(proportion_of_species(save_path + 'facet' + 'pruned' + str(i) + '.txt'))
 
     # Simply plot the relation between the threshold used and the proportion of species.
-    plt.plot(thresholdlist, proportions)
-    plt.plot([0.93, 0.93], [0, 1])
-    plt.show()
+    #plt.plot(thresholdlist, proportions)
+    #plt.plot([0.93, 0.93], [0, 1])
+    #plt.show()
 
     np.save(save_path + '_thresholdlist', thresholdlist)
 
     #Once we have every instances (with fill_folder_with_facetlists()) we can compute the betti numbers of the instances.
     #This function automatically saves the Betti numbers it computes for each threshold.
-    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 4)
+    bettiarr = compute_bettis_for_persistence(ilist[0], ilist[-1], save_path + 'facetpruned', 3)
 
 
     print('Time taken : ', time.time() - start_time)

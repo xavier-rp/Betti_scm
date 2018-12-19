@@ -87,11 +87,31 @@ def compute_betti(facetlist, highest_dim):
         else:
             st.insert(facet)
 
+    # We need to add a facet that has a size equivalent to the Betti we want to compute + 2 because GUDHI cannot compute
+    # Betti N if there are no facets of size N + 2. As an example, if we take the 1-skeleton, there are, of course, no
+    # facet of size higher than 2 and does not compute Betti 1. As a result, highest_dim needs to be 1 unit higher than
+    # the maximum Betti number we want to compute. Moreover, we need to manually add a facet of size N + 2 (highest_dim + 1)
+    # for the case where there are no such facets in the original complex. As an example, if we have two empty triangles,
+    # GUDHI kinda assumes it's a 1-skeleton, and just compute Betti 0, although we would like to know that Betti 1 = 2.
+    # The only way, it seems, to do so it to add a facet of size N + 2 (highest_dim + 1)
+    # It also need to be disconnected from our simplicial complex because we don't want it to create unintentional holes.
+    # This has the effect to add a componant in the network, hence why we substract 1 from Betti 0 (see last line of the function)
+
+    # We add + 1 + 2 for the following reasons. First, we need a new facet of size highest_dim + 1 because of the reason
+    # above. The last number in arange is not considered (ex : np.arange(0, 3) = [0, 1, 2], so we need to add 1 again.
+    # Moreover, we cannot start at index 0 (because 0 is in the complex) nor -1 because GUDHI returns an error code 139.
+    # If we could start at -1, it would be ok only with highest_dim + 3, but since we start at -2, we need to go one
+    # index further, hence + 1.
+    disconnected_facet = [label for label in np.arange(-2, -(highest_dim + 1 + 2), -1)]
+    print('disco ', disconnected_facet)
+    st.insert(disconnected_facet)
+
 
     # This function has to be launched in order to compute the Betti numbers
     st.persistence()
-
-    return st.betti_numbers()
+    bettis = st.betti_numbers()
+    bettis[0] = bettis[0] - 1
+    return bettis
 
 def compute_and_store_bettis(path, highest_dim, save_path):
     """
@@ -119,7 +139,8 @@ def compute_and_store_bettis(path, highest_dim, save_path):
             facetlist.append([int(x) for x in l.strip().split()])
 
         if highest_dim == 'max':
-            highest_dim = highest_possible_betti(facetlist)
+            # If we want to compute Betti N, we need the (N+1)-skeleton
+            highest_dim = highest_possible_betti(facetlist) + 1
 
         bettis = compute_betti(facetlist, highest_dim)
         if len(bettis) < highest_dim:
@@ -156,8 +177,10 @@ def compute_and_store_bettis_from_instances(instance_path, idx_range, highest_di
             print('Working on ' + instance_path + str(idx) + '.json')
             facetlist = json.load(file)
             if highest_dim_param == 'max':
-                highest_dim = highest_possible_betti(facetlist)
+                # If we want to compute Betti N, we need the (N+1)-skeleton
+                highest_dim = highest_possible_betti(facetlist) + 1
                 highest_dim_list.append(highest_dim)
+                print(highest_dim)
 
             bettis = compute_betti(facetlist, highest_dim)
             if highest_dim_param != 'max':
@@ -296,20 +319,21 @@ def highest_possible_betti(facetlist):
 
 
     else:
-        betti = 0
+        betti = 2
 
     return betti
 
 if __name__ == '__main__':
 
-    #path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/unitest.txt'
+    path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/unitest.txt'
     #facetlist = []
     #with open(path, 'r') as file:
     #    for l in file:
     #        facetlist.append([int(x) for x in l.strip().split()])
 
-    #print(highest_possible_betti(facetlist))
-
+    #hi = highest_possible_betti(facetlist)
+    #print(hi)
+    #print(compute_betti(facetlist, hi + 1))
     #exit()
 
     # Instruction : Change the path to the instances. Must not contain the index nor the extension of the file (added
@@ -345,10 +369,10 @@ if __name__ == '__main__':
     #print(proj.number_of_edges)
 
     # Instruction : Change the range so it matches the indices of the instances that we want to process
-    idx_range = range(1,101)
+    idx_range = range(50,101)
 
     # Instruction : Change the dimension of the j-skeleton used to compute Betti numbers
-    highest_dim = 2
+    highest_dim = 'max'
 
     # Instruction : Change the path where you save the Betti numbers of the instances
     savepath_betti_instance = instance_path
