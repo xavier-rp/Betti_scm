@@ -240,7 +240,7 @@ def plot_betti_dist(bettiarray_instance, bettiarray_data):
 def highest_possible_betti(facetlist):
     """
     This function computes the dimension of the highest non trivial Betti number in a facet list (by dimension we mean
-    the index beside a Betti number, for example Betti 2 has a ' dimension ', although it corresponds to a 3 dimensional
+    the index beside a Betti number, for example Betti 2 has a ' dimension ' 2, although it corresponds to a 3 dimensional
     void). It is usefull since, by default, GUDHI's simplex tree tend to compute the Betti numbers up to the
     dimension - 1 of the highest dimensional facet in the list. As an example, if there is only one facet of size 38
     (dimension 37), GUDHI tries to compute the Betti numbers from Betti 0 to Betti 36, which is unnecessary since there
@@ -260,7 +260,7 @@ def highest_possible_betti(facetlist):
     # Sort the facet list by ascending order of facet size
     facetlist.sort(key=len)
 
-    # This loop counts the number of facets of size 1
+    # This loop counts the number of facets of size 1 (meaning 0-simplices)
     i = 0
     while i < len(facetlist):
         if len(facetlist[i]) != 1:
@@ -269,17 +269,24 @@ def highest_possible_betti(facetlist):
     # If we only have facets of size 1, there are no facets bigger than 1
     if i == len(facetlist):
         facets_bigger_than_one = []
-    # If the previous loop broke at
+    # If the previous loop broke at i, it means that all the other facets have size greater than 1.
     else:
         facets_bigger_than_one = facetlist[i:]
 
+    # Number of facets that have size bigger than 1
     length = len(facets_bigger_than_one)
+
+    # If we have a minimum of 3 facets bigger than one, we can, in theory, construct holes. As an example, as soon as we
+    # have 3 1-simplices, we can build an empty triangle.
     if length >= 3:
         min_size = len(facets_bigger_than_one[0])
         max_size = len(facets_bigger_than_one[-1])
 
         nb_facets_histogram_by_size = []
+
+        # Initialize a list that will contain each unique sizes
         size_list = []
+        # Initialize a list that will contain the number of facets of each size
         count_list = []
         previous_facet = facets_bigger_than_one[0]
         i = 1
@@ -307,35 +314,42 @@ def highest_possible_betti(facetlist):
 
 
         # If there are N facets, we can, in theory, have a non zero Betti N-2, provided that these N facets have
-        # a minimum size of N - 1.
+        # a minimum size of N - 1. Ex : 4 facets, could build an empty tetrahedron IF their size is at least 3.
         # Therefore : If the maximal size that we can find in the list is lower than the minimum size (i.e. lower than
-        # N-1) required to have a non zero Betti N - 2, we know that all the Betti numbers > max_size - 1 are zero.
+        # N-1) required to have a non zero Betti N - 2, we know that Betti >= N - 2 are 0. This also means that
+        # all the Betti numbers > max_size - 1 are zero. For instance, if we have 10 facets, we can, in theory build
+        # a hole that would contribute to Betti N - 2 = 8. But if the largest facet in the list has size 4, we know that
+        # we cannot build holes that would contribute to Betti > 3. Hence Betti > 3 are all zero.
         # Indeed, to build Betti numbers of dimension 'd', we need facets of size d + 1. So if our max size is 'k' the
         # first Betti number we need to look at is k - 1 (i.e. max_size - 1)
+
+        # if max_size < N - 1 would be another way to write this.
         if max_size < length - 1:
             considered_size = max_size
+
         # If there are facets of size higher than or equal to the minimum size required to have a non zero Betti N - 2,
         # the first Betti number we need to look at is built with facets of size N - 1 and bigger. This means that
         # we don't have to look at the Betti numbers > N - 2, that would in principle be non trivial if we didn't know
         # the number of facets
         else:
+            # considered_size = N - 1 would be another way to write this.
             considered_size = length - 1
 
-        # This loop checks if there is a sufficient number of facets of a certain size (and higher than this certain size)
-        # to create a specific Betti number. The first size that respect this condition corresponds to our highest non
+        # This loop checks if there is a sufficient number of facets of a specific size (and higher than this specific size)
+        # to create the associated Betti number. The first size that respects this condition corresponds to our highest non
         # trivial Betti number.
         # We need to iterate over every size below the first ' considered size ' because we can encounter a situation
         # where there are no facets of a certain size, but enough facets of higher size to create a betti number associated
         # with this size. For example, in a facet list in which there is 1 facet of size 2, 3 facets if size 4 and 1 facet
-        # of size 5, we know that Betti 3 and Betti 2 are zero, but Betti 1 could be non zero since there are 4 facets
-        # of size >= 3.
+        # of size 5, we know that Betti 3 and Betti 2 are zero, but Betti 1 could be non zero since there are 5 facets
+        # of size >= 2.
         for size in np.arange(considered_size, 1, - 1):
             nb_of_respecting_facets = np.sum(count_list[np.where(size_list >= size)])
             if nb_of_respecting_facets >= size + 1:
                 break
         betti = size - 1
 
-
+    # TODO : This 2 seems out of place, it should be Betti = 0. Test
     else:
         betti = 2
 
@@ -343,11 +357,19 @@ def highest_possible_betti(facetlist):
 
 if __name__ == '__main__':
 
-    path = '/home/xavier/Documents/Projet/Betti_scm/homologically_equivalent/unitest.txt'
-    #facetlist = []
-    #with open(path, 'r') as file:
-    #    for l in file:
-    #        facetlist.append([int(x) for x in l.strip().split()])
+    path = '/home/xavier/Documents/Projet/Betti_scm/FinalOTU/BarCode/site_as_facets_sumfilt/site_as_facets_facetpruned97.txt'
+    facetlist = []
+    with open(path, 'r') as file:
+        for l in file:
+            facetlist.append([int(x) for x in l.strip().split()])
+    somme = 0
+    maxlist =[]
+    for elem in facetlist:
+        maxlist.append(len(elem))
+        somme += len(elem)
+    print(somme/len(facetlist))
+    print(min(maxlist), max(maxlist))
+    exit()
 
     #hi = highest_possible_betti(facetlist)
     #print(hi)
