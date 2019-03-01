@@ -4,6 +4,7 @@ import time
 import pickle
 import json
 import os
+import matplotlib.pyplot as plt
 
 def to_occurrence_matrix(matrix, savepath=None):
     """
@@ -145,16 +146,35 @@ def find_simplices_matrix_dictio(matrix, n, savepath=''):
         print('Writting dictionary.')
         pickle.dump(simplex_dictionary, file)
 
+def histo_nb_appearences(simplex_dictionary):
+
+    return np.bincount(np.array(list(simplex_dictionary.values())))
 
 
 if __name__ == '__main__':
+    a = {}
+    a['1'] = 1
+    a['2'] = 2
+    a['3'] = 1
+    a['4'] = 3
+    a['5'] = 3
+    a['6'] = 4
+    a['7'] = 1
+    a['8'] = 1
+    bcounts = histo_nb_appearences(a)
+    plt.bar(np.arange(len(bcounts)), bcounts)
+    plt.show()
+
+
+    exit()
     start = time.clock()
-    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
-    find_simplices_matrix_dictio(matrix1, 3)
-    with open(r'simplexdictionary.pickle', 'rb') as f:
+    #matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    #find_simplices_matrix_dictio(matrix1, 3)
+    with open(r'/home/xavier/Documents/Projet/Betti_scm/simplexdictionary2.pickle', 'rb') as f:
         data = pickle.load(f)
         print(len(data))
     print('Time taken : ', time.clock()-start)
+
     #find_simplices_matrix(matrix1, 3)
     #                      savepath=r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\testspace\\')
     #matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
