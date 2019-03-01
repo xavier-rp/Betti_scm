@@ -1,4 +1,6 @@
 import numpy as np
+import scipy as sp
+import scipy.misc
 import itertools
 import time
 import pickle
@@ -151,31 +153,68 @@ def get_keys_for_value(simplex_dictionary, value, savename='keylist.pickle'):
     with open(savename, 'wb') as f:
         pickle.dump([key for (key, val) in simplex_dictionary.items() if val == value], f)
 
+def histo_prob_dist(bincount, total_number_of_groups):
+    bincount[0] = total_number_of_groups - np.sum(bincount)
+    bincount = bincount/np.sum(bincount)
+    return bincount
+
+def cumulative_dist(prob_dist):
+
+    cumulative = []
+    for i in range(len(prob_dist)):
+        if i > 0:
+            cumulative.append(np.sum(prob_dist[:i]))
+
+    return np.array(cumulative)
 
 if __name__ == '__main__':
 
-    #a = {}
-    #a['1'] = 1
-    #a['2'] = 2
-    #a['3'] = 1
-    #a['4'] = 3
-    #a['5'] = 3
-    #a['6'] = 4
-    #a['7'] = 1
-    #a['8'] = 1
-    #bcounts = histo_nb_appearences(a)
-    #plt.bar(np.arange(len(bcounts)), bcounts)
-    #plt.show()
-    #fig, ax = plt.subplots()
-    #bcount = np.load('bcount.npy')
+    fig, ax = plt.subplots()
+    bcount = np.load('bcount.npy')
 
-    #ax.bar(np.arange(len(bcount)), bcount)
-    #ax.set_yscale('log')
-    #plt.bar(np.arange(len(bcount)), bcount)
+    # plot probability distribution
+    #matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    #nb_species = matrix1.shape[0]
+    #spec_choose_3 = sp.misc.comb(nb_species, 3)
+    #prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #ax.bar(np.arange(len(bcount)), prob_dist)
     #plt.show()
 
+    # plot cumulative distribution
+    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    nb_species = matrix1.shape[0]
+    spec_choose_3 = sp.misc.comb(nb_species, 3)
+    prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    cumul = cumulative_dist(prob_dist)
+    print(cumul)
+    plt.plot(np.arange(len(cumul)), cumul)
+    plt.xlabel('Number of appearences')
+    plt.ylabel('Cumulative probability')
+    plt.show()
 
-    #exit()
+    # plot complementary cumulative dist
+    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    nb_species = matrix1.shape[0]
+    spec_choose_3 = sp.misc.comb(nb_species, 3)
+    prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    cumul = cumulative_dist(prob_dist)
+    plt.plot(np.arange(len(cumul)), 1 - cumul)
+    plt.xlabel('Number of appearences')
+    plt.ylabel('1 - Cumulative probability')
+    plt.show()
+
+
+    # plot count histogram (without 0)
+    fig, ax = plt.subplots()
+    ax.bar(np.arange(len(bcount)), bcount)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    plt.xlabel('Number of appearences')
+    plt.ylabel('Number of simplicies')
+    plt.show()
+
+
+    exit()
 
 
     #exit()
