@@ -9,16 +9,13 @@ import matplotlib.pyplot as plt
 def to_occurrence_matrix(matrix, savepath=None):
     """
     Transform a matrix into a binary matrix where entries are 1 if the original entry was different from 0.
-
     Parameters
     ----------
     matrix (np.array)
     savepath (string) : path and filename under which to save the file
-
     Returns
     -------
         The binary matrix or None if a savepath is specified.
-
     """
     if savepath is None:
         return (matrix > 0)*1
@@ -50,7 +47,6 @@ def find_simplices_matrix(matrix, n, savepath=''):
 
 def count_labeled_simplices(loadpath, savepath=''):
     """
-
     :param loadpath:
     :param savepath:
     :return:
@@ -146,33 +142,49 @@ def find_simplices_matrix_dictio(matrix, n, savepath=''):
         print('Writting dictionary.')
         pickle.dump(simplex_dictionary, file)
 
-def histo_nb_appearences(simplex_dictionary):
+def histo_nb_appearences(simplex_dictionary, savename='bcounts'):
+    np.save(savename, np.bincount(np.array(list(simplex_dictionary.values()))))
+    return
 
-    return np.bincount(np.array(list(simplex_dictionary.values())))
+
+def get_keys_for_value(simplex_dictionary, value, savename='keylist.pickle'):
+    with open(savename, 'wb') as f:
+        pickle.dump([key for (key, val) in simplex_dictionary.items() if val == value], f)
 
 
 if __name__ == '__main__':
-    a = {}
-    a['1'] = 1
-    a['2'] = 2
-    a['3'] = 1
-    a['4'] = 3
-    a['5'] = 3
-    a['6'] = 4
-    a['7'] = 1
-    a['8'] = 1
-    bcounts = histo_nb_appearences(a)
-    plt.bar(np.arange(len(bcounts)), bcounts)
-    plt.show()
+
+    #a = {}
+    #a['1'] = 1
+    #a['2'] = 2
+    #a['3'] = 1
+    #a['4'] = 3
+    #a['5'] = 3
+    #a['6'] = 4
+    #a['7'] = 1
+    #a['8'] = 1
+    #bcounts = histo_nb_appearences(a)
+    #plt.bar(np.arange(len(bcounts)), bcounts)
+    #plt.show()
+    #fig, ax = plt.subplots()
+    #bcount = np.load('bcount.npy')
+
+    #ax.bar(np.arange(len(bcount)), bcount)
+    #ax.set_yscale('log')
+    #plt.bar(np.arange(len(bcount)), bcount)
+    #plt.show()
 
 
-    exit()
+    #exit()
+
+
+    #exit()
     start = time.clock()
     #matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
     #find_simplices_matrix_dictio(matrix1, 3)
-    with open(r'/home/xavier/Documents/Projet/Betti_scm/simplexdictionary2.pickle', 'rb') as f:
+    with open(r'simplexdictionary.pickle', 'rb') as f:
         data = pickle.load(f)
-        print(len(data))
+        get_keys_for_value(data, 34)
     print('Time taken : ', time.clock()-start)
 
     #find_simplices_matrix(matrix1, 3)
