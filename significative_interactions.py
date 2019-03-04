@@ -173,12 +173,14 @@ if __name__ == '__main__':
     bcount = np.load('bcount.npy')
 
     # plot probability distribution
-    #matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
-    #nb_species = matrix1.shape[0]
-    #spec_choose_3 = sp.misc.comb(nb_species, 3)
-    #prob_dist = histo_prob_dist(bcount, spec_choose_3)
-    #ax.bar(np.arange(len(bcount)), prob_dist)
-    #plt.show()
+    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    nb_species = matrix1.shape[0]
+    spec_choose_3 = sp.misc.comb(nb_species, 3)
+    prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    print(np.sum(prob_dist))
+    print(np.sum(prob_dist *np.arange(0, 35)**2 / 35))
+    ax.bar(np.arange(len(bcount)), prob_dist)
+    plt.show()
 
     # plot cumulative distribution
     matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
