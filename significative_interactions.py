@@ -1,12 +1,16 @@
 import numpy as np
 import scipy as sp
 import scipy.misc
+import scipy.stats
 import itertools
 import time
 import pickle
 import json
 import os
 import matplotlib.pyplot as plt
+import networkx as nx
+from tqdm import tqdm
+import csv
 
 def to_occurrence_matrix(matrix, savepath=None):
     """
@@ -167,13 +171,286 @@ def cumulative_dist(prob_dist):
 
     return np.array(cumulative)
 
+def contingency_u_v(u_idx, v_idx, matrix):
+
+    u_v_count = 0
+    u_not_v_count = 0
+
+    not_u_v_count = 0
+    not_u_not_v_count = 0
+    for i in range(matrix.shape[1]):
+        all_line_indices = np.where(matrix[:,i] > 0)[0]
+
+        if u_idx in all_line_indices:
+            # u is present
+            if v_idx in all_line_indices:
+                # Means u and v appear together in a site
+                u_v_count += 1
+
+            else :
+                # u is present, but not v
+                # we can make len(all_line_indices) - 1 pairs in which u appears, but not v
+                u_not_v_count += 1
+        elif v_idx in all_line_indices:
+            not_u_v_count += 1
+        else :
+            not_u_not_v_count += 1
+
+
+            # if u_idx in all_line_indices and v_idx in all_line_indices:
+            #    #Means they appeared together in a site
+            #    u_v_count += 1
+            #    u_not_v_count += len(all_line_indices) - 2
+            #    not_u_v_count += len(all_line_indices) - 2
+
+    return np.array([[u_v_count, u_not_v_count], [not_u_v_count, not_u_not_v_count]])
+
+def contingency_u_v_w(u_idx, v_idx, w_idx, matrix):
+
+    u_v_w_count = 0
+    u_not_v_w_count = 0
+
+    not_u_v_w_count = 0
+    not_u_not_v_w_count = 0
+
+    u_v_not_w_count = 0
+    u_not_v_not_w_count = 0
+    not_u_v_not_w_count = 0
+
+    not_u_not_v_not_w_count = 0
+    for i in range(matrix.shape[1]):
+        all_line_indices = np.where(matrix[:,i] > 0)[0]
+
+        if u_idx in all_line_indices:
+            # u is present
+            if v_idx in all_line_indices:
+
+                if w_idx in all_line_indices:
+
+                    u_v_w_count += 1
+                else :
+                    u_v_not_w_count += 1
+            else:
+                if w_idx in all_line_indices:
+                    u_not_v_w_count += 1
+                else :
+                    u_not_v_not_w_count += 1
+        else :
+            if v_idx in all_line_indices:
+                if w_idx in all_line_indices:
+                    not_u_v_w_count += 1
+                else:
+                    not_u_v_not_w_count += 1
+            else :
+                if w_idx in all_line_indices:
+                    not_u_not_v_w_count += 1
+                else:
+                    not_u_not_v_not_w_count += 1
+
+    return np.array([[[u_v_w_count, u_not_v_w_count], [not_u_v_w_count, not_u_not_v_w_count]],
+                     [[u_v_not_w_count, u_not_v_not_w_count],[not_u_v_not_w_count, not_u_not_v_not_w_count]]])
+
+def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
+    oddsratio, p = sp.stats.fisher_exact(contingency_table)
+    if p > alpha :
+        # Cannot reject H_0 in which we suppose that u and v are independent
+        # Thus, we do not add the link between u and v in the graph
+        pass
+    else:
+        #print('Rejected H0')
+        # Reject H_0 and accept H_1 in which we suppose that u and v are dependent
+        # Thus, we add a link between u and v in the graph.
+        graph.add_edge(u_idx, v_idx)
+
+def save_pairwise_p_values(bipartite_matrix, savename, bufferlimit=100000):
+
+    # create a CSV file
+    with open(savename+'.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'p-value']])
+
+    buffer = []
+    count = 0
+    for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
+        contingency_table = contingency_u_v(one_simplex[0], one_simplex[1], bipartite_matrix)
+        oddsratio, p = sp.stats.fisher_exact(contingency_table)
+        buffer.append([one_simplex[0], one_simplex[1], p])
+        count += 1
+        if count == bufferlimit:
+            with open(savename+'.csv', 'a') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
+
+    with open(savename + '.csv', 'a') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
+def read_pairwise_p_values(filename, alpha=0.01):
+    graph = nx.Graph()
+    with open(filename, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        row_count = 0
+        for row in reader:
+            if row_count == 0 :
+                row_count += 1
+                pass
+            else:
+                p = float(row[-1])
+                if p > alpha:
+                    # Cannot reject H_0 in which we suppose that u and v are independent
+                    # Thus, we do not add the link between u and v in the graph
+                    pass
+                else:
+                    # print('Rejected H0')
+                    # Reject H_0 and accept H_1 in which we suppose that u and v are dependent
+                    # Thus, we add a link between u and v in the graph.
+                    graph.add_edge(int(row[0]), int(row[1]))
+
+    return graph
+
+
+def save_triplets_p_values(bipartite_matrix, savename, bufferlimit=100000):
+
+    # create a CSV file
+    with open(savename+'.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(['node index 1', 'node index 2', 'node index 3', 'p-value'])
+
+    buffer = []
+    count = 0
+    for two_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 3)):
+        contingency_table = contingency_u_v_w(two_simplex[0], two_simplex[1], two_simplex[2], bipartite_matrix)
+
+        # TODO DEF CHI SQUARED FOR TRIPLE
+        oddsratio, p = sp.stats.fisher_exact(contingency_table)
+        buffer.append([two_simplex[0], two_simplex[1], two_simplex[2], p])
+        count += 1
+        if count == bufferlimit:
+            with open(savename+'.csv', 'a') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
+
+    with open(savename + '.csv', 'a') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
+
+def disconnected_network(nodes):
+    g = nx.Graph()
+    g.add_nodes_from(np.arange(nodes))
+    return g
+
+def build_network(g, matrix, alph):
+    nb_of_simplices = sp.misc.comb(matrix1.shape[0], 2)
+    count = 0
+    for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
+        #print(str(count) + ' ouf of ' + str(nb_of_simplices))
+        contigency_table = contingency_u_v(one_simplex[0], one_simplex[1], matrix)
+        significant_edge(g, one_simplex[0], one_simplex[1], contigency_table, alpha=alph)
+        count += 1
+
+    return g
+
+
+
 if __name__ == '__main__':
+    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_manually_corrected.csv', 0.01)
+    #print(len(list(g.nodes)))
+    #exit()
+    #g = nx.Graph()
+    #g.add_edge(2,3)
+    #g = nx.read_edgelist('alpha0001_reduced_graph_edgelist')
+    #print(len(list(g.nodes)))
+    #exit()
+
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #save_pairwise_p_values(matrix1, 'pairwise_p_values')
+    #exit()
+
+    #alph = 0.001
+    #g = nx.Graph() #disconnected_network(matrix1.shape[0])
+    #build_network(g, matrix1, alph=alph)
+
+    #nx.write_edgelist(g, 'alpha0001_reduced_graph_edgelist')
+
+
+
+
+
+    #exit()
+    #### plot distributions
+    fignum = 1
+    for i in range(0, 3):
+
+        #plt.figure(fignum)
+        ##fig, ax = plt.subplots()
+        bcount = np.load(str(i) + 'bcounts.npy')
+
+        ## plot probability distribution
+        matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+        nb_species = matrix1.shape[0]
+        spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+        prob_dist = histo_prob_dist(bcount, spec_choose_3)
+        ## print(np.sum(prob_dist))
+        ## print(np.sum(prob_dist *np.arange(0, 35)**2 / 35))
+        #plt.bar(np.arange(len(bcount)), prob_dist)
+        #plt.title(str(i)+'-simplices')
+        ## plt.show()
+        #fignum += 1
+        # plot cumulative distribution
+        plt.figure(fignum)
+        matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+        nb_species = matrix1.shape[0]
+        spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+        cumul = cumulative_dist(prob_dist)
+        print(cumul)
+        plt.plot(np.arange(len(cumul)), cumul, label=str(i)+'-simplices')
+        plt.xlabel('Number of appearences')
+        plt.ylabel('Cumulative probability')
+        plt.title(str(i)+'-simplices')
+        # plt.show()
+        #fignum += 1
+
+        # plot complementary cumulative dist
+        #plt.figure(fignum)
+        #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+        #nb_species = matrix1.shape[0]
+        #spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+        #cumul = cumulative_dist(prob_dist)
+        #plt.plot(np.arange(len(cumul)), 1 - cumul)
+        #plt.xlabel('Number of appearences')
+        #plt.ylabel('1 - Cumulative probability')
+        #plt.title(str(i) + '-simplices')
+        ## plt.show()
+        #fignum += 1
+    plt.legend()
+    plt.show()
+    exit()
+
+    ########## plot count histogram (without 0)
+    fig, ax = plt.subplots()
+    ax.bar(np.arange(len(bcount)), bcount)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    plt.xlabel('Number of appearences')
+    plt.ylabel('Number of simplicies')
+    plt.show()
+
+    exit()
+
+
 
     fig, ax = plt.subplots()
     bcount = np.load('bcount.npy')
 
     # plot probability distribution
-    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     nb_species = matrix1.shape[0]
     spec_choose_3 = sp.misc.comb(nb_species, 3)
     prob_dist = histo_prob_dist(bcount, spec_choose_3)
@@ -183,7 +460,7 @@ if __name__ == '__main__':
     plt.show()
 
     # plot cumulative distribution
-    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     nb_species = matrix1.shape[0]
     spec_choose_3 = sp.misc.comb(nb_species, 3)
     prob_dist = histo_prob_dist(bcount, spec_choose_3)
@@ -195,7 +472,7 @@ if __name__ == '__main__':
     plt.show()
 
     # plot complementary cumulative dist
-    matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     nb_species = matrix1.shape[0]
     spec_choose_3 = sp.misc.comb(nb_species, 3)
     prob_dist = histo_prob_dist(bcount, spec_choose_3)
@@ -249,6 +526,61 @@ if __name__ == '__main__':
     #vector = matrix1[:, 0].flatten()
     #start = time.clock()
     #print(count_n_simplices(vector, 3), time.clock()-start)
+
+
+    #### plot distributions
+
+    # for i in range(3):
+    #    fig, ax = plt.subplots()
+    #    bcount = np.load(str(i) + 'bcounts.npy')
+
+    #    # plot probability distribution
+    #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #    nb_species = matrix1.shape[0]
+    #    spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+    #    prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #    # print(np.sum(prob_dist))
+    #    # print(np.sum(prob_dist *np.arange(0, 35)**2 / 35))
+    #    ax.bar(np.arange(len(bcount)), prob_dist)
+    #    # plt.show()
+
+    #    # plot cumulative distribution
+    #    plt.figure(i + 1)
+    #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #    nb_species = matrix1.shape[0]
+    #    spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+    #    prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #    cumul = cumulative_dist(prob_dist)
+    #    print(cumul)
+    #    plt.plot(np.arange(len(cumul)), cumul)
+    #    plt.xlabel('Number of appearences')
+    #    plt.ylabel('Cumulative probability')
+    #    # plt.show()
+
+    #    # plot complementary cumulative dist
+    #    plt.figure(i + 2)
+    #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #    nb_species = matrix1.shape[0]
+    #    spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+    #    prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #    cumul = cumulative_dist(prob_dist)
+    #    plt.plot(np.arange(len(cumul)), 1 - cumul)
+    #    plt.xlabel('Number of appearences')
+    #    plt.ylabel('1 - Cumulative probability')
+    #    # plt.show()
+    # plt.show()
+    # exit()
+
+    ## plot count histogram (without 0)
+    # fig, ax = plt.subplots()
+    # ax.bar(np.arange(len(bcount)), bcount)
+    # ax.set_yscale('log')
+    # ax.set_xscale('log')
+    # plt.xlabel('Number of appearences')
+    # plt.ylabel('Number of simplicies')
+    # plt.show()
+
+    # exit()
 
 
 
