@@ -250,6 +250,39 @@ def contingency_u_v_w(u_idx, v_idx, w_idx, matrix):
     return np.array([[[u_v_w_count, u_not_v_w_count], [not_u_v_w_count, not_u_not_v_w_count]],
                      [[u_v_not_w_count, u_not_v_not_w_count],[not_u_v_not_w_count, not_u_not_v_not_w_count]]])
 
+def chi_square_triplet_p_value(contingency_cube):
+
+    # based on Pieter Kroonenberg Phi_IJK ^2 (eq 17.10)
+    # We just have one degree of freedom since we have fixed the column, row and depth sums
+    total = np.sum(contingency_cube[:,:,:])
+    contingency_cube = contingency_cube/total
+    chi_square_ijk = 0
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
+                pi__ = np.sum(contingency_cube[i,:,:])
+                p_j_ = np.sum(contingency_cube[:,j,:])
+                p__k = np.sum(contingency_cube[:,:,k])
+
+                pij_ = np.sum(contingency_cube[i,j,:])
+                pi_k = np.sum(contingency_cube[i,:,k])
+                p_jk = np.sum(contingency_cube[:,j,k])
+
+                pijk = contingency_cube[i,j,k]
+
+                alpha_pijk = pij_*p__k + pi_k*p_j_ + p_jk*pi__ - 2*pi__*p_j_*p__k
+
+                chi_square_ijk += pi__*p_j_*p__k * ( (pijk - alpha_pijk)/(pi__*p_j_*p__k) )**2
+
+    chi_square_ijk = total*chi_square_ijk
+
+    p_value = sp.stats.chi.pdf(chi_square_ijk, df=1)
+
+    return p_value
+
+
+
+
 def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
     oddsratio, p = sp.stats.fisher_exact(contingency_table)
     if p > alpha :
@@ -312,7 +345,7 @@ def read_pairwise_p_values(filename, alpha=0.01):
     return graph
 
 
-def save_triplets_p_values(bipartite_matrix, savename, bufferlimit=100000):
+def save_triplets_p_values(bipartite_matrix, nodelist, savename, bufferlimit=100000):
 
     # create a CSV file
     with open(savename+'.csv', 'w') as csvFile:
@@ -321,11 +354,10 @@ def save_triplets_p_values(bipartite_matrix, savename, bufferlimit=100000):
 
     buffer = []
     count = 0
-    for two_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 3)):
+    for two_simplex in tqdm(itertools.combinations(nodelist, 3)):
         contingency_table = contingency_u_v_w(two_simplex[0], two_simplex[1], two_simplex[2], bipartite_matrix)
 
-        # TODO DEF CHI SQUARED FOR TRIPLE
-        oddsratio, p = sp.stats.fisher_exact(contingency_table)
+        p = chi_square_triplet_p_value(contingency_table)
         buffer.append([two_simplex[0], two_simplex[1], two_simplex[2], p])
         count += 1
         if count == bufferlimit:
@@ -360,20 +392,24 @@ def build_network(g, matrix, alph):
 
 
 if __name__ == '__main__':
-    g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/good_pairwise_p_values.csv', 0.01)
-    print(len(list(g.nodes)))
-    pos = nx.spring_layout(g)
-    nx.draw_networkx_nodes(g, pos, nodelist=list(g.nodes), node_color='r', node_size=20)
-    nx.draw_networkx_edges(g, pos)
-    plt.show()
+    g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/good_pairwise_p_values.csv', 0.00001)
+    #print(len(list(g.nodes)))
+    #pos = nx.spring_layout(g)
+    #nx.draw_networkx_nodes(g, pos, nodelist=list(g.nodes), node_color='r', node_size=20)
+    #nx.draw_networkx_edges(g, pos)
+    #plt.show()
     #exit()
     #graf = nx.Graph()
     #g.add_edge(2,3)
     #graf = nx.read_edgelist('alpha001_reduced_graph_edgelist')
     #print(len(list(graf.nodes)))
-    exit()
+    #exit()
 
-    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    nodelist = list(g.nodes)
+    print(len(nodelist))
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    save_triplets_p_values(matrix1, nodelist, 'triplet_p_value')
+    exit()
     #save_pairwise_p_values(matrix1, 'pairwise_p_values')
     #exit()
 
