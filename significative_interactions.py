@@ -293,7 +293,7 @@ def read_pairwise_p_values(filename, alpha=0.01):
     with open(filename, 'r') as csvfile:
         reader = csv.reader(csvfile)
         row_count = 0
-        for row in reader:
+        for row in tqdm(reader):
             if row_count == 0 :
                 row_count += 1
                 pass
@@ -360,20 +360,24 @@ def build_network(g, matrix, alph):
 
 
 if __name__ == '__main__':
-    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_manually_corrected.csv', 0.01)
-    #print(len(list(g.nodes)))
+    g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/good_pairwise_p_values.csv', 0.01)
+    print(len(list(g.nodes)))
+    pos = nx.spring_layout(g)
+    nx.draw_networkx_nodes(g, pos, nodelist=list(g.nodes), node_color='r', node_size=20)
+    nx.draw_networkx_edges(g, pos)
+    plt.show()
     #exit()
-    #g = nx.Graph()
+    #graf = nx.Graph()
     #g.add_edge(2,3)
-    #g = nx.read_edgelist('alpha0001_reduced_graph_edgelist')
-    #print(len(list(g.nodes)))
-    #exit()
+    #graf = nx.read_edgelist('alpha001_reduced_graph_edgelist')
+    #print(len(list(graf.nodes)))
+    exit()
 
     #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     #save_pairwise_p_values(matrix1, 'pairwise_p_values')
     #exit()
 
-    #alph = 0.001
+    #alph = 0.01
     #g = nx.Graph() #disconnected_network(matrix1.shape[0])
     #build_network(g, matrix1, alph=alph)
 
