@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from tqdm import tqdm
 import csv
+from scipy.stats import chi
 
 def to_occurrence_matrix(matrix, savepath=None):
     """
@@ -27,6 +28,76 @@ def to_occurrence_matrix(matrix, savepath=None):
         return (matrix > 0)*1
     else:
         np.save(savepath, (matrix>0)*1)
+
+def get_cont_table(u_idx, v_idx, matrix):
+    # Computes the 2X2 contingency table for the occurrence matrix
+    row_u_present = matrix[u_idx, :]
+    row_v_present = matrix[v_idx, :]
+
+    row_u_not_present = 1 - row_u_present
+    row_v_not_present = 1 - row_v_present
+
+    # u present, v present
+    table00 = np.dot(row_u_present, row_v_present)
+
+    # u present, v NOT present
+    table01 = np.dot(row_u_present, row_v_not_present)
+
+    # u NOT present, v present
+    table10 = np.dot(row_u_not_present, row_v_present)
+
+    # u NOT present, v NOT present
+    table11 = np.dot(row_u_not_present, row_v_not_present)
+
+    return np.array([[table00, table01], [table10, table11]])
+
+def chisq_test(cont_tab):
+    #Computes the chisquare statistics and its p-value for a 2X2 contingency table
+    row_sums = np.sum(cont_tab, axis=1)
+    col_sums = np.sum(cont_tab, axis=0)
+    n = np.sum(cont_tab)
+    df=1
+
+    row_props = row_sums/n
+    col_props = col_sums/n
+    expected = np.random.rand(2,2)
+    for i in range(2):
+        for j in range(2):
+
+            expected[i,j] = row_props[i]*col_props[j]*n
+
+    test_stat = np.sum((cont_tab-expected)**2 / expected)
+    p_val = chi.sf(test_stat, 1)
+
+    return test_stat, p_val
+
+def save_pairwise_p_values_new(bipartite_matrix, savename, bufferlimit=100000):
+
+    # create a CSV file
+    with open(savename+'.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'p-value']])
+
+    buffer = []
+    count = 0
+    for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
+        contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
+        chi2, p = chisq_test(contingency_table)
+        buffer.append([one_simplex[0], one_simplex[1], p])
+        count += 1
+        if count == bufferlimit:
+            with open(savename+'.csv', 'a') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
+
+    with open(savename + '.csv', 'a') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
+
 
 def find_n_simplices_vector(vector, n):
 
@@ -284,7 +355,7 @@ def chi_square_triplet_p_value(contingency_cube):
 
 
 def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
-    oddsratio, p = sp.stats.fisher_exact(contingency_table)
+    chi2, p, dof, ex = sp.stats.chi2_contingency(contingency_table)
     if p > alpha :
         # Cannot reject H_0 in which we suppose that u and v are independent
         # Thus, we do not add the link between u and v in the graph
@@ -306,7 +377,7 @@ def save_pairwise_p_values(bipartite_matrix, savename, bufferlimit=100000):
     count = 0
     for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
         contingency_table = contingency_u_v(one_simplex[0], one_simplex[1], bipartite_matrix)
-        oddsratio, p = sp.stats.fisher_exact(contingency_table)
+        chi2, p, dof, ex = sp.stats.chi2_contingency(contingency_table)
         buffer.append([one_simplex[0], one_simplex[1], p])
         count += 1
         if count == bufferlimit:
@@ -389,11 +460,10 @@ def build_network(g, matrix, alph):
 
     return g
 
-
-
 if __name__ == '__main__':
-    g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/good_pairwise_p_values.csv', 0.00001)
+    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.001)
     #print(len(list(g.nodes)))
+    #print(len(list(g.edges)))
     #pos = nx.spring_layout(g)
     #nx.draw_networkx_nodes(g, pos, nodelist=list(g.nodes), node_color='r', node_size=20)
     #nx.draw_networkx_edges(g, pos)
@@ -405,13 +475,14 @@ if __name__ == '__main__':
     #print(len(list(graf.nodes)))
     #exit()
 
-    nodelist = list(g.nodes)
-    print(len(nodelist))
+    #nodelist = list(g.nodes)
+    #print(len(nodelist))
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    save_triplets_p_values(matrix1, nodelist, 'triplet_p_value')
-    exit()
-    #save_pairwise_p_values(matrix1, 'pairwise_p_values')
+    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    #save_triplets_p_values(matrix1, nodelist, 'triplet_p_value')
     #exit()
+    save_pairwise_p_values_new(matrix1, 'pairwise_p_values_vectorizedbidon')
+    exit()
 
     #alph = 0.01
     #g = nx.Graph() #disconnected_network(matrix1.shape[0])
