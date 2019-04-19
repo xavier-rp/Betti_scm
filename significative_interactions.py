@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from tqdm import tqdm
 import csv
-from scipy.stats import chi
+from scipy.stats import chi2
 
 def to_occurrence_matrix(matrix, savepath=None):
     """
@@ -67,7 +67,7 @@ def chisq_test(cont_tab):
             expected[i,j] = row_props[i]*col_props[j]*n
 
     test_stat = np.sum((cont_tab-expected)**2 / expected)
-    p_val = chi.sf(test_stat, 1)
+    p_val = chi2.sf(test_stat, 1)
 
     return test_stat, p_val
 
