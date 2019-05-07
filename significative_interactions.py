@@ -51,8 +51,45 @@ def get_cont_table(u_idx, v_idx, matrix):
 
     return np.array([[table00, table01], [table10, table11]])
 
-def chisq_test(cont_tab):
-    #Computes the chisquare statistics and its p-value for a 2X2 contingency table
+def get_cont_cube(u_idx, v_idx, w_idx, matrix):
+    # Computes the 2X2X2 contingency table for the occurrence matrix
+
+    row_u_present = matrix[u_idx, :]
+    row_v_present = matrix[v_idx, :]
+    row_w_present = matrix[w_idx, :]
+
+    row_u_not = 1 - row_u_present
+    row_v_not = 1 - row_v_present
+    row_w_not = 1 - row_w_present
+
+    #All present :
+    table000 =np.sum(row_u_present*row_v_present*row_w_present)
+
+    # v absent
+    table010 = np.sum(row_u_present*row_v_not*row_w_present)
+
+    # u absent
+    table100 = np.sum(row_u_not*row_v_present*row_w_present)
+
+    # u absent, v absent
+    table110 = np.sum(row_u_not*row_v_not*row_w_present)
+
+    # w absent
+    table001 = np.sum(row_u_present*row_v_present*row_w_not)
+
+    # v absent, w absent
+    table011 = np.sum(row_u_present*row_v_not*row_w_not)
+
+    # u absent, w absent
+    table101 = np.sum(row_u_not*row_v_present*row_w_not)
+
+    # all absent
+    table111 = np.sum(row_u_not*row_v_not*row_w_not)
+
+    return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]])
+
+def chisq_test_2x2(cont_tab):
+    #Computes the chisquare statistics and its p-value for a 2X2 contingency table under the independence hypothesis
     row_sums = np.sum(cont_tab, axis=1)
     col_sums = np.sum(cont_tab, axis=0)
     n = np.sum(cont_tab)
@@ -67,9 +104,37 @@ def chisq_test(cont_tab):
             expected[i,j] = row_props[i]*col_props[j]*n
 
     test_stat = np.sum((cont_tab-expected)**2 / expected)
-    p_val = chi2.sf(test_stat, 1)
+    p_val = chi2.sf(test_stat, df)
 
     return test_stat, p_val
+
+def chisq_test_2x2x2_ind(cont_cube):
+    #Computes the chisquare statistics and its p-value for a 2X2X2 contingency table under the total independence hypothesis
+
+    row_sums = np.sum(cont_cube, axis=1)
+    col_sums = np.sum(cont_cube, axis=0)
+    depth_sums = np.sum(cont_cube, axis=1)
+    n = np.sum(cont_cube)
+
+    df = 1 # TODO df = 1???
+
+    row_props = row_sums/n
+    col_props = col_sums/n
+    depth_props = depth_sums/n
+    expected = np.random.rand(2,2,2)
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
+
+                expected[i,j,k] = row_props[i,k]*col_props[j,k]*depth_props[i,j]*n
+
+    test_stat = np.sum((cont_cube - expected) ** 2 / expected)
+    p_val = chi2.sf(test_stat, df)
+
+    return test_stat, p_val
+
+
+
 
 def save_pairwise_p_values_new(bipartite_matrix, savename, bufferlimit=100000):
 
@@ -402,16 +467,17 @@ def read_pairwise_p_values(filename, alpha=0.01):
                 row_count += 1
                 pass
             else:
-                p = float(row[-1])
-                if p > alpha:
-                    # Cannot reject H_0 in which we suppose that u and v are independent
-                    # Thus, we do not add the link between u and v in the graph
-                    pass
-                else:
-                    # print('Rejected H0')
-                    # Reject H_0 and accept H_1 in which we suppose that u and v are dependent
-                    # Thus, we add a link between u and v in the graph.
-                    graph.add_edge(int(row[0]), int(row[1]))
+                if row[-1] != 'nan':
+                    p = float(row[-1])
+                    if p > alpha:
+                        # Cannot reject H_0 in which we suppose that u and v are independent
+                        # Thus, we do not add the link between u and v in the graph
+                        pass
+                    else:
+                        # print('Rejected H0')
+                        # Reject H_0 and accept H_1 in which we suppose that u and v are dependent
+                        # Thus, we add a link between u and v in the graph.
+                        graph.add_edge(int(row[0]), int(row[1]))
 
     return graph
 
@@ -461,7 +527,10 @@ def build_network(g, matrix, alph):
     return g
 
 if __name__ == '__main__':
-    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.001)
+
+
+
+    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.0000dol01)
     #print(len(list(g.nodes)))
     #print(len(list(g.edges)))
     #pos = nx.spring_layout(g)
@@ -479,10 +548,14 @@ if __name__ == '__main__':
     #print(len(nodelist))
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    print(matrix1[917,:])
+    chisq_test(get_cont_table(1,261, matrix1))
+    exit()
+
     #save_triplets_p_values(matrix1, nodelist, 'triplet_p_value')
     #exit()
-    save_pairwise_p_values_new(matrix1, 'pairwise_p_values_vectorizedbidon')
-    exit()
+    #save_pairwise_p_values_new(matrix1, 'pairwise_p_values_vectorizedwhaton')
+    #exit()
 
     #alph = 0.01
     #g = nx.Graph() #disconnected_network(matrix1.shape[0])
