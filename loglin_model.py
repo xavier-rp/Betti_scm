@@ -1,5 +1,4 @@
 import numpy as np
-import
 
 def mle_2x2x2_ind(cont_cube):
     """
