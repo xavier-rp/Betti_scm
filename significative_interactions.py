@@ -6,6 +6,7 @@ import itertools
 import time
 import pickle
 import os
+from loglin_model import *
 import matplotlib.pyplot as plt
 import networkx as nx
 from tqdm import tqdm
@@ -87,53 +88,17 @@ def get_cont_cube(u_idx, v_idx, w_idx, matrix):
 
     return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]])
 
-def chisq_test_2x2(cont_tab):
-    #Computes the chisquare statistics and its p-value for a 2X2 contingency table under the independence hypothesis
-    row_sums = np.sum(cont_tab, axis=1)
-    col_sums = np.sum(cont_tab, axis=0)
-    n = np.sum(cont_tab)
-    df=1
+def chisq_test(cont_tab, expected):
+    #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
+    #via MLE or iterative proportional fitting.
 
-    row_props = row_sums/n
-    col_props = col_sums/n
-    expected = np.random.rand(2,2)
-    for i in range(2):
-        for j in range(2):
-
-            expected[i,j] = row_props[i]*col_props[j]*n
-
-    test_stat = np.sum((cont_tab-expected)**2 / expected)
+    df = 1
+    test_stat = np.sum((cont_tab-expected)**2/expected)
     p_val = chi2.sf(test_stat, df)
 
     return test_stat, p_val
 
-def chisq_test_2x2x2_ind(cont_cube):
-    #Computes the chisquare statistics and its p-value for a 2X2X2 contingency table under the total independence hypothesis
-
-    row_sums = np.sum(cont_cube, axis=1)
-    col_sums = np.sum(cont_cube, axis=0)
-    depth_sums = np.sum(cont_cube, axis=1)
-    n = np.sum(cont_cube)
-
-    df = 1 # TODO df = 1???
-
-    row_props = row_sums/n
-    col_props = col_sums/n
-    depth_props = depth_sums/n
-    expected = np.random.rand(2,2,2)
-    for i in range(2):
-        for j in range(2):
-            for k in range(2):
-
-                expected[i,j,k] = row_props[i,k]*col_props[j,k]*depth_props[i,j]*n
-
-    test_stat = np.sum((cont_cube - expected) ** 2 / expected)
-    p_val = chi2.sf(test_stat, df)
-
-    return test_stat, p_val
-
-
-def save_pairwise_p_values_new(bipartite_matrix, savename, bufferlimit=100000):
+def save_pairwise_p_values(bipartite_matrix, savename, bufferlimit=100000):
 
     # create a CSV file
     with open(savename+'.csv', 'w') as csvFile:
@@ -144,7 +109,8 @@ def save_pairwise_p_values_new(bipartite_matrix, savename, bufferlimit=100000):
     count = 0
     for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
         contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
-        chi2, p = chisq_test(contingency_table)
+        expected_table = mle_2x2_ind(contingency_table)
+        chi2, p = chisq_test(contingency_table, expected_table)
         buffer.append([one_simplex[0], one_simplex[1], p])
         count += 1
         if count == bufferlimit:
@@ -159,10 +125,7 @@ def save_pairwise_p_values_new(bipartite_matrix, savename, bufferlimit=100000):
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
 
-
-
 def find_n_simplices_vector(vector, n):
-
 
     # Indices of the non zero vector entries. We use this because it would be a waste of time to check between every
     # group of n entries since we know that we wont count groups with entries that are zero.
@@ -304,118 +267,6 @@ def cumulative_dist(prob_dist):
 
     return np.array(cumulative)
 
-def contingency_u_v(u_idx, v_idx, matrix):
-
-    u_v_count = 0
-    u_not_v_count = 0
-
-    not_u_v_count = 0
-    not_u_not_v_count = 0
-    for i in range(matrix.shape[1]):
-        all_line_indices = np.where(matrix[:,i] > 0)[0]
-
-        if u_idx in all_line_indices:
-            # u is present
-            if v_idx in all_line_indices:
-                # Means u and v appear together in a site
-                u_v_count += 1
-
-            else :
-                # u is present, but not v
-                # we can make len(all_line_indices) - 1 pairs in which u appears, but not v
-                u_not_v_count += 1
-        elif v_idx in all_line_indices:
-            not_u_v_count += 1
-        else :
-            not_u_not_v_count += 1
-
-
-            # if u_idx in all_line_indices and v_idx in all_line_indices:
-            #    #Means they appeared together in a site
-            #    u_v_count += 1
-            #    u_not_v_count += len(all_line_indices) - 2
-            #    not_u_v_count += len(all_line_indices) - 2
-
-    return np.array([[u_v_count, u_not_v_count], [not_u_v_count, not_u_not_v_count]])
-
-def contingency_u_v_w(u_idx, v_idx, w_idx, matrix):
-
-    u_v_w_count = 0
-    u_not_v_w_count = 0
-
-    not_u_v_w_count = 0
-    not_u_not_v_w_count = 0
-
-    u_v_not_w_count = 0
-    u_not_v_not_w_count = 0
-    not_u_v_not_w_count = 0
-
-    not_u_not_v_not_w_count = 0
-    for i in range(matrix.shape[1]):
-        all_line_indices = np.where(matrix[:,i] > 0)[0]
-
-        if u_idx in all_line_indices:
-            # u is present
-            if v_idx in all_line_indices:
-
-                if w_idx in all_line_indices:
-
-                    u_v_w_count += 1
-                else :
-                    u_v_not_w_count += 1
-            else:
-                if w_idx in all_line_indices:
-                    u_not_v_w_count += 1
-                else :
-                    u_not_v_not_w_count += 1
-        else :
-            if v_idx in all_line_indices:
-                if w_idx in all_line_indices:
-                    not_u_v_w_count += 1
-                else:
-                    not_u_v_not_w_count += 1
-            else :
-                if w_idx in all_line_indices:
-                    not_u_not_v_w_count += 1
-                else:
-                    not_u_not_v_not_w_count += 1
-
-    return np.array([[[u_v_w_count, u_not_v_w_count], [not_u_v_w_count, not_u_not_v_w_count]],
-                     [[u_v_not_w_count, u_not_v_not_w_count],[not_u_v_not_w_count, not_u_not_v_not_w_count]]])
-
-def chi_square_triplet_p_value(contingency_cube):
-
-    # based on Pieter Kroonenberg Phi_IJK ^2 (eq 17.10)
-    # We just have one degree of freedom since we have fixed the column, row and depth sums
-    total = np.sum(contingency_cube[:,:,:])
-    contingency_cube = contingency_cube/total
-    chi_square_ijk = 0
-    for i in range(2):
-        for j in range(2):
-            for k in range(2):
-                pi__ = np.sum(contingency_cube[i,:,:])
-                p_j_ = np.sum(contingency_cube[:,j,:])
-                p__k = np.sum(contingency_cube[:,:,k])
-
-                pij_ = np.sum(contingency_cube[i,j,:])
-                pi_k = np.sum(contingency_cube[i,:,k])
-                p_jk = np.sum(contingency_cube[:,j,k])
-
-                pijk = contingency_cube[i,j,k]
-
-                alpha_pijk = pij_*p__k + pi_k*p_j_ + p_jk*pi__ - 2*pi__*p_j_*p__k
-
-                chi_square_ijk += pi__*p_j_*p__k * ( (pijk - alpha_pijk)/(pi__*p_j_*p__k) )**2
-
-    chi_square_ijk = total*chi_square_ijk
-
-    p_value = sp.stats.chi.pdf(chi_square_ijk, df=1)
-
-    return p_value
-
-
-
-
 def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
     chi2, p, dof, ex = sp.stats.chi2_contingency(contingency_table)
     if p > alpha :
@@ -489,9 +340,9 @@ def save_triplets_p_values(bipartite_matrix, nodelist, savename, bufferlimit=100
     buffer = []
     count = 0
     for two_simplex in tqdm(itertools.combinations(nodelist, 3)):
-        contingency_table = contingency_u_v_w(two_simplex[0], two_simplex[1], two_simplex[2], bipartite_matrix)
+        contingency_table = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], bipartite_matrix)
 
-        p = chi_square_triplet_p_value(contingency_table)
+        p = chisq_test(contingency_table)
         buffer.append([two_simplex[0], two_simplex[1], two_simplex[2], p])
         count += 1
         if count == bufferlimit:
@@ -517,7 +368,7 @@ def build_network(g, matrix, alph):
     count = 0
     for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
         #print(str(count) + ' ouf of ' + str(nb_of_simplices))
-        contigency_table = contingency_u_v(one_simplex[0], one_simplex[1], matrix)
+        contigency_table = get_cont_table(one_simplex[0], one_simplex[1], matrix)
         significant_edge(g, one_simplex[0], one_simplex[1], contigency_table, alpha=alph)
         count += 1
 
