@@ -5,7 +5,6 @@ import scipy.stats
 import itertools
 import time
 import pickle
-import json
 import os
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -132,8 +131,6 @@ def chisq_test_2x2x2_ind(cont_cube):
     p_val = chi2.sf(test_stat, df)
 
     return test_stat, p_val
-
-
 
 
 def save_pairwise_p_values_new(bipartite_matrix, savename, bufferlimit=100000):
@@ -527,7 +524,20 @@ def build_network(g, matrix, alph):
     return g
 
 if __name__ == '__main__':
+    xijk = np.ones((2, 2, 2))
 
+    xijk[0, 0, 0] = 156
+    xijk[0, 1, 0] = 84
+    xijk[0, 0, 1] = 84
+    xijk[0, 1, 1] = 156
+
+    xijk[1, 0, 0] = 107
+    xijk[1, 1, 0] = 133
+    xijk[1, 0, 1] = 31
+    xijk[1, 1, 1] = 209
+
+    print(iterative_proportional_fitting_ind(xijk, delta=0.000001))
+    exit()
 
 
     #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.0000dol01)
