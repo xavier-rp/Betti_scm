@@ -1,7 +1,4 @@
 import numpy as np
-import scipy as sp
-from scipy.stats import chi2
-import time
 
 def mle_2x2x2_ind(cont_cube):
     """
@@ -92,10 +89,7 @@ def mle_2x2x2_AC_B(cont_cube):
 
                 expected[k,i,j] = mi_k[i,k]*m_j_[j]/n
 
-    test_stat = np.sum((cont_cube - expected) ** 2 / expected)
-    p_val = chi2.sf(test_stat, df)
-
-    return test_stat, p_val
+    return expected
 
 def mle_2x2x2_BC_A(cont_cube):
     """
