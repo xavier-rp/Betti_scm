@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import copy
 import scipy as sp
 import scipy.misc
 import scipy.stats
@@ -12,6 +14,45 @@ import networkx as nx
 from tqdm import tqdm
 import csv
 from scipy.stats import chi2
+
+def pvalue_AB_AC_BC(cont_cube):
+    return chisq_test(cont_cube, iterative_proportional_fitting_AB_AC_BC(cont_cube))[1]
+
+def test_models(cont_cube, alpha):
+    models = ['ind', 'AB_C', 'AC_B', 'BC_A', 'AB_AC', 'AB_BC', 'AC_BC', 'AB_AC_BC', 'ABC']
+    p_value_list = []
+
+    expected_ind = mle_2x2x2_ind(cont_cube)
+
+    expected_AB_C = mle_2x2x2_AB_C(cont_cube)
+
+    expected_AC_B = mle_2x2x2_AC_B(cont_cube)
+
+    expected_BC_A = mle_2x2x2_BC_A(cont_cube)
+
+    expected_AB_AC = mle_2x2x2_AB_AC(cont_cube)
+
+    expected_AB_BC = mle_2x2x2_AB_BC(cont_cube)
+
+    expected_AC_BC = mle_2x2x2_AC_BC(cont_cube)
+
+    expected_AB_AC_BC = iterative_proportional_fitting_AB_AC_BC(cont_cube)
+
+
+    p_value_list.append(chisq_test(cont_cube, expected_ind)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_AB_C)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_AC_B)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_BC_A)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_AB_AC)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_AB_BC)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_AC_BC)[0])
+    p_value_list.append(chisq_test(cont_cube, expected_AB_AC_BC)[0])
+
+    for i in range(8):
+        if p_value_list[i] < alpha:
+            return p_value_list[i], models[i]
+
+    return models[-1]
 
 def to_occurrence_matrix(matrix, savepath=None):
     """
@@ -279,32 +320,6 @@ def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
         # Thus, we add a link between u and v in the graph.
         graph.add_edge(u_idx, v_idx)
 
-def save_pairwise_p_values(bipartite_matrix, savename, bufferlimit=100000):
-
-    # create a CSV file
-    with open(savename+'.csv', 'w') as csvFile:
-        writer = csv.writer(csvFile)
-        writer.writerows([['node index 1', 'node index 2', 'p-value']])
-
-    buffer = []
-    count = 0
-    for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
-        contingency_table = contingency_u_v(one_simplex[0], one_simplex[1], bipartite_matrix)
-        chi2, p, dof, ex = sp.stats.chi2_contingency(contingency_table)
-        buffer.append([one_simplex[0], one_simplex[1], p])
-        count += 1
-        if count == bufferlimit:
-            with open(savename+'.csv', 'a') as csvFile:
-                writer = csv.writer(csvFile)
-                writer.writerows(buffer)
-                count = 0
-                # empty the buffer
-                buffer = []
-
-    with open(savename + '.csv', 'a') as csvFile:
-        writer = csv.writer(csvFile)
-        writer.writerows(buffer)
-
 def read_pairwise_p_values(filename, alpha=0.01):
     graph = nx.Graph()
     with open(filename, 'r') as csvfile:
@@ -374,26 +389,172 @@ def build_network(g, matrix, alph):
 
     return g
 
+def find_nb_n_cliques(max_clique_node_list, n):
+    nb = 0
+    size = len(max_clique_node_list)
+    if size >= n:
+        nb += sp.misc.comb(size, n)
+    return nb
+
+def get_cliques_by_length(G, length_clique):
+    """ Return the list of all cliques in an undirected graph G with length
+    equal to length_clique. """
+    cliques = []
+    for c in nx.enumerate_all_cliques(G) :
+        if len(c) <= length_clique:
+            if len(c) == length_clique:
+                cliques.append(c)
+        else:
+            return cliques
+    # return empty list if nothing is found
+    return cliques
+
+def get_nb_cliques_by_length(G, length_clique):
+    """ Return the list of all cliques in an undirected graph G with length
+    equal to length_clique. Should be used with a lot of memory..."""
+    nb = 0
+    for c in nx.enumerate_all_cliques(G) :
+        if len(c) <= length_clique:
+            if len(c) == length_clique:
+                nb += 1
+        else:
+            return nb
+    # return empty list if nothing is found
+    return nb
+
+def save_all_triangles(G, savename, bufferlimit=100000):
+    G = copy.deepcopy(G)
+    with open(savename + '.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3']])
+    buffer = []
+    # Iterate over all possible triangle relationship combinations
+    count = 0
+    for node in list(G.nodes):
+        for n1, n2 in itertools.combinations(G.neighbors(node), 2):
+
+            # Check if n1 and n2 have an edge between them
+            if G.has_edge(n1, n2):
+
+                buffer.append([node, n1, n2])
+                count += 1
+
+        G.remove_node(node)
+
+        if count == bufferlimit:
+            with open(savename + '.csv', 'a') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
+
+    with open(savename + '.csv', 'a') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
+def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
+
+    buffer = []
+
+    with open(csvfile, 'r') as csvfile, open(savename, 'w') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        count = 0
+        next(reader)
+        for row in tqdm(reader):
+
+            cont_cube = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
+            p_value = pvalue_AB_AC_BC(cont_cube)
+
+            buffer.append([int(row[0]), int(row[1]), int(row[2]), p_value])
+            count += 1
+
+            if count == bufferlimit:
+                with open(savename + '.csv', 'a') as csvFile:
+                    writer = csv.writer(csvFile)
+                    writer.writerows(buffer)
+                    count = 0
+                    # empty the buffer
+                    buffer = []
+        if count == bufferlimit:
+            with open(savename + '.csv', 'a') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerows(buffer)
+
+def count_triangles_csv(filename):
+    with open(filename, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        row_count = -1
+        for row in tqdm(reader):
+            row_count +=1
+
+    return row_count
+
 if __name__ == '__main__':
-    xijk = np.ones((2, 2, 2))
 
-    xijk[0, 0, 0] = 156
-    xijk[0, 1, 0] = 84
-    xijk[0, 0, 1] = 84
-    xijk[0, 1, 1] = 156
+    #xijk = np.ones((2, 2, 2))
 
-    xijk[1, 0, 0] = 107
-    xijk[1, 1, 0] = 133
-    xijk[1, 0, 1] = 31
-    xijk[1, 1, 1] = 209
+    #xijk[0, 0, 0] = 156
+    #xijk[0, 1, 0] = 84
+    #xijk[0, 0, 1] = 84
+    #xijk[0, 1, 1] = 156
 
-    print(iterative_proportional_fitting_ind(xijk, delta=0.000001))
-    exit()
+    #xijk[1, 0, 0] = 107
+    #xijk[1, 1, 0] = 133
+    #xijk[1, 0, 1] = 31
+    #xijk[1, 1, 1] = 209
 
+    #print(iterative_proportional_fitting_ind(xijk, delta=0.000001))
+    #exit()
 
-    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.0000dol01)
+    #G = nx.Graph()
+    #G = nx.complete_graph(3)
+    #save_all_triangles(G, 'testcomplete')
+    #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/testcomplete.csv'))
+    #print(type(G.nodes))
+    #exit()
+    #print(nx.triangles(G, 0))
+
+    #print(nx.triangles(G))
+
+    #print(list(nx.triangles(G, (0, 1)).values()))
+    #exit()
+    #G.add_nodes_from([1,2,3,4,5,6,7])
+    #G.add_nodes_from([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    #G.add_nodes_from([1, 2, 3, 4, 5])
+    #G.add_edges_from(
+    #    [(1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)])
+    #for clique in nx.algorithms.clique.find_cliques(G):
+    #    print(clique)
+    #G.add_edges_from([(1,2),(2,3),(3,1),(3,4),(3,5),(3,6),(3,7),(4,5),(4,6),(4,7),(5,6),(5,7),(6,7)])
+    #G.add_edges_from([(1, 2), (2, 3), (3, 1), (1, 4), (1, 5), (4, 5), (2, 6), (2, 7), (7, 6), (3, 8), (3, 9), (9, 8)])
+    #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.001)
+    #ls = list(g.nodes)
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    #triangles_p_values_AB_AC_BC('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'triangles_pvalues_alpha001', matrix1)
+    #save_all_triangles(g, 'triangles_alpha01')
+    #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha01.csv'))
+    #print(sum(nx.triangles(g).values()) / 3)
+    #exit()
+    #print(get_nb_cliques_by_length(g,3))
+    #exit()
+    #print(sum(nx.triangles(g).values()) / 3)
+    # For alpha = 0.01 : 2605 nodes (6 unconnected nodes) and 305361 links. For alpha = 0.001 : 2570 nodes (41 unconnected nodes) and 186280 links
     #print(len(list(g.nodes)))
     #print(len(list(g.edges)))
+    #i = 0
+    #nb_3_cliques = 0
+    #for clique in nx.algorithms.clique.find_cliques(g):
+        #nb_3_cliques += find_nb_n_cliques(clique, 3)
+        #i += 1
+    #    print(clique)
+    #print(i, nb_3_cliques)
+    #exit()
+    #    pass
+        #print(clique)
     #pos = nx.spring_layout(g)
     #nx.draw_networkx_nodes(g, pos, nodelist=list(g.nodes), node_color='r', node_size=20)
     #nx.draw_networkx_edges(g, pos)
@@ -409,8 +570,10 @@ if __name__ == '__main__':
     #print(len(nodelist))
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
-    print(matrix1[917,:])
-    chisq_test(get_cont_table(1,261, matrix1))
+    #print(matrix1[917,:])
+    #chisq_test(get_cont_table(1,261, matrix1))
+    cont_tab = get_cont_table(0, 768, matrix1)
+    print(chisq_test(cont_tab, mle_2x2_ind(cont_tab)))
     exit()
 
     #save_triplets_p_values(matrix1, nodelist, 'triplet_p_value')
