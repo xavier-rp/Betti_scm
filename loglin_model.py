@@ -289,6 +289,59 @@ def iterative_proportional_fitting_AB_AC_BC(cont_cube, delta=0.01):
 
     return mijk
 
+def iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube, delta=0.000001):
+    """
+    Computes the maximum likelihood estimates of a 2X2X2 table under the hypothesis no three-factor interaction.
+    1 and 2 together.
+    The formula for the MLEs are obtained via the iterative proportional fitting proposed in Bishop et Al. Discrete multivariate analysis
+    chapter 3.
+    ----------
+    cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
+    delta (float) : If the difference between the last estimates and the current estimates, we accept the estimates.
+
+    Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of no three-factor interaction
+    -------
+
+    """
+
+    xij_ = np.sum(cont_cube, axis=0)
+    xi_k = np.sum(cont_cube, axis=2).T
+    x_jk = np.sum(cont_cube, axis=1).T
+
+    # initialize the MLE at 1 for every cell
+    mijk = np.ones((2,2,2))
+
+    while True:
+        old_mijk = np.copy(mijk)
+        mij_ = np.sum(mijk, axis=0)
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    mijk[k,i,j] = mijk[k,i,j] * xij_[i,j] / mij_[i, j]
+
+        mi_k = np.sum(mijk, axis=2).T
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    mijk[k,i,j] = mijk[k,i,j] * xi_k[i,k] / mi_k[i, k]
+
+        m_jk = np.sum(mijk, axis=1).T
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    mijk[k,i,j] = mijk[k,i,j] * x_jk[j,k] / m_jk[j, k]
+        if np.all(mijk.flatten() != 0 ):
+            if np.all(np.abs(mijk.flatten() - old_mijk.flatten()) < delta):
+                print('Converged!')
+                break
+        else :
+            return None
+
+    return mijk
+
 def iterative_proportional_fitting_AC_BC(cont_cube, delta=0.01):
     "See the equivalent MLE function above"
 

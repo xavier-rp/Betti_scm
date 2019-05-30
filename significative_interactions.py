@@ -16,7 +16,11 @@ import csv
 from scipy.stats import chi2
 
 def pvalue_AB_AC_BC(cont_cube):
-    return chisq_test(cont_cube, iterative_proportional_fitting_AB_AC_BC(cont_cube))[1]
+    expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+    if expected is not None:
+        return chisq_test(cont_cube, expected)[1]
+    else:
+        return expected
 
 def test_models(cont_cube, alpha):
     models = ['ind', 'AB_C', 'AC_B', 'BC_A', 'AB_AC', 'AB_BC', 'AC_BC', 'AB_AC_BC', 'ABC']
@@ -462,14 +466,19 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
         writer = csv.writer(fout)
         writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
         count = 0
+        none_count = 0
         next(reader)
         for row in tqdm(reader):
 
             cont_cube = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
+
             p_value = pvalue_AB_AC_BC(cont_cube)
 
-            buffer.append([int(row[0]), int(row[1]), int(row[2]), p_value])
-            count += 1
+            if p_value is not None:
+                buffer.append([int(row[0]), int(row[1]), int(row[2]), p_value])
+                count += 1
+            else :
+                none_count += 1
 
             if count == bufferlimit:
                 with open(savename + '.csv', 'a') as csvFile:
@@ -478,10 +487,11 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
                     count = 0
                     # empty the buffer
                     buffer = []
-        if count == bufferlimit:
-            with open(savename + '.csv', 'a') as csvFile:
-                writer = csv.writer(csvFile)
-                writer.writerows(buffer)
+
+        with open(savename + '.csv', 'a') as csvFile:
+            writer = csv.writer(csvFile)
+            writer.writerows(buffer)
+        return none_count
 
 def count_triangles_csv(filename):
     with open(filename, 'r') as csvfile:
@@ -532,13 +542,20 @@ if __name__ == '__main__':
     #G.add_edges_from([(1, 2), (2, 3), (3, 1), (1, 4), (1, 5), (4, 5), (2, 6), (2, 7), (7, 6), (3, 8), (3, 9), (9, 8)])
     #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.001)
     #ls = list(g.nodes)
-    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
-    #triangles_p_values_AB_AC_BC('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'triangles_pvalues_alpha001', matrix1)
-    #save_all_triangles(g, 'triangles_alpha01')
-    #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha01.csv'))
-    #print(sum(nx.triangles(g).values()) / 3)
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    #cont = get_cont_cube(1, 448, 1863, matrix1)
+    #print(pvalue_AB_AC_BC(cont))
     #exit()
+    print(triangles_p_values_AB_AC_BC('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'triangles_pvalues_alpha001', matrix1))
+    exit()
+    #save_all_triangles(g, 'triangles_alpha01')
+    #8535037 it[33:13, 4281.43it / s]
+    #8311398
+    print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv'))
+    print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv'))
+    #print(sum(nx.triangles(g).values()) / 3)
+    exit()
     #print(get_nb_cliques_by_length(g,3))
     #exit()
     #print(sum(nx.triangles(g).values()) / 3)
@@ -570,6 +587,7 @@ if __name__ == '__main__':
     #print(len(nodelist))
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    exit()
     #print(matrix1[917,:])
     #chisq_test(get_cont_table(1,261, matrix1))
     cont_tab = get_cont_table(0, 768, matrix1)
