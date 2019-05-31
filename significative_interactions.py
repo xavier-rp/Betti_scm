@@ -131,7 +131,7 @@ def get_cont_cube(u_idx, v_idx, w_idx, matrix):
     # all absent
     table111 = np.sum(row_u_not*row_v_not*row_w_not)
 
-    return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]])
+    return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]], dtype=np.float64)
 
 def chisq_test(cont_tab, expected):
     #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
@@ -393,39 +393,6 @@ def build_network(g, matrix, alph):
 
     return g
 
-def find_nb_n_cliques(max_clique_node_list, n):
-    nb = 0
-    size = len(max_clique_node_list)
-    if size >= n:
-        nb += sp.misc.comb(size, n)
-    return nb
-
-def get_cliques_by_length(G, length_clique):
-    """ Return the list of all cliques in an undirected graph G with length
-    equal to length_clique. """
-    cliques = []
-    for c in nx.enumerate_all_cliques(G) :
-        if len(c) <= length_clique:
-            if len(c) == length_clique:
-                cliques.append(c)
-        else:
-            return cliques
-    # return empty list if nothing is found
-    return cliques
-
-def get_nb_cliques_by_length(G, length_clique):
-    """ Return the list of all cliques in an undirected graph G with length
-    equal to length_clique. Should be used with a lot of memory..."""
-    nb = 0
-    for c in nx.enumerate_all_cliques(G) :
-        if len(c) <= length_clique:
-            if len(c) == length_clique:
-                nb += 1
-        else:
-            return nb
-    # return empty list if nothing is found
-    return nb
-
 def save_all_triangles(G, savename, bufferlimit=100000):
     G = copy.deepcopy(G)
     with open(savename + '.csv', 'w') as csvFile:
@@ -435,23 +402,74 @@ def save_all_triangles(G, savename, bufferlimit=100000):
     # Iterate over all possible triangle relationship combinations
     count = 0
     for node in list(G.nodes):
-        for n1, n2 in itertools.combinations(G.neighbors(node), 2):
+        if G.degree[node] < 2:
+            G.remove_node(node)
+        else:
+            for n1, n2 in itertools.combinations(G.neighbors(node), 2):
 
-            # Check if n1 and n2 have an edge between them
-            if G.has_edge(n1, n2):
+                # Check if n1 and n2 have an edge between them
+                if G.has_edge(n1, n2):
 
-                buffer.append([node, n1, n2])
-                count += 1
+                    buffer.append([node, n1, n2])
+                    count += 1
 
-        G.remove_node(node)
+            G.remove_node(node)
 
-        if count == bufferlimit:
-            with open(savename + '.csv', 'a') as csvFile:
-                writer = csv.writer(csvFile)
-                writer.writerows(buffer)
-                count = 0
-                # empty the buffer
-                buffer = []
+            if count == bufferlimit:
+                with open(savename + '.csv', 'a') as csvFile:
+                    writer = csv.writer(csvFile)
+                    writer.writerows(buffer)
+                    count = 0
+                    # empty the buffer
+                    buffer = []
+
+    with open(savename + '.csv', 'a') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
+def save_all_n_cliques(G, n, savename, bufferlimit=100000):
+    G = copy.deepcopy(G)
+    with open(savename + '.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        headerlist = []
+        for i in range(n):
+            headerlist.append('node index ' + str(i))
+        writer.writerows([headerlist])
+    buffer = []
+    # Iterate over all possible triangle relationship combinations
+    count = 0
+    for node in list(G.nodes):
+        if G.degree[node] < n - 1:
+            G.remove_node(node)
+        else:
+            for neighbors in itertools.combinations(G.neighbors(node), n - 1):
+
+                # Check if all pairs have an edge between them
+                switch = True
+                for pair in itertools.combinations(neighbors, 2):
+
+                    if G.has_edge(pair[0], pair[1]):
+                        pass
+
+                    else :
+                        switch = False
+                        break
+                if switch :
+                    nodes_to_add_list = [node]
+                    for node_i in neighbors:
+                        nodes_to_add_list.append(node_i)
+                    buffer.append(nodes_to_add_list)
+                    count += 1
+                    if count == bufferlimit:
+                        with open(savename + '.csv', 'a') as csvFile:
+                            writer = csv.writer(csvFile)
+                            writer.writerows(buffer)
+                            count = 0
+                            # empty the buffer
+                            buffer = []
+
+
+            G.remove_node(node)
 
     with open(savename + '.csv', 'a') as csvFile:
         writer = csv.writer(csvFile)
@@ -488,9 +506,9 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
                     # empty the buffer
                     buffer = []
 
-        with open(savename + '.csv', 'a') as csvFile:
-            writer = csv.writer(csvFile)
-            writer.writerows(buffer)
+
+        writer = fout.writer(csvFile)
+        writer.writerows(buffer)
         return none_count
 
 def count_triangles_csv(filename):
@@ -502,8 +520,26 @@ def count_triangles_csv(filename):
 
     return row_count
 
+def extract_2_simplex_from_csv(csvfilename, alpha, savename):
+
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            if row[-1] != 'nan':
+                p = float(row[-1])
+                if p < alpha:
+                    writer = csv.writer(fout)
+                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), p])
+
+
+
 if __name__ == '__main__':
 
+    extract_2_simplex_from_csv("/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv", 0.001, "extracted")
+    exit()
     #xijk = np.ones((2, 2, 2))
 
     #xijk[0, 0, 0] = 156
@@ -544,16 +580,20 @@ if __name__ == '__main__':
     #ls = list(g.nodes)
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
-    #cont = get_cont_cube(1, 448, 1863, matrix1)
-    #print(pvalue_AB_AC_BC(cont))
+    cont = get_cont_cube(1, 331, 2151, matrix1)
+    cont[0,1,1] = 0.5
+    cont[1,0,1] = 0.5
+    cont[1,1,0] = 0.5
+    print(cont)
+    print(pvalue_AB_AC_BC(cont))
     #exit()
-    print(triangles_p_values_AB_AC_BC('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'triangles_pvalues_alpha001', matrix1))
-    exit()
+    #print(triangles_p_values_AB_AC_BC('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'triangles_pvalues_alpha001donterase', matrix1))
+    #exit()
     #save_all_triangles(g, 'triangles_alpha01')
     #8535037 it[33:13, 4281.43it / s]
     #8311398
-    print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv'))
-    print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv'))
+    #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv'))
+    #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv'))
     #print(sum(nx.triangles(g).values()) / 3)
     exit()
     #print(get_nb_cliques_by_length(g,3))
