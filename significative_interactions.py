@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import collections
 import copy
 import scipy as sp
 import scipy.misc
@@ -133,6 +134,18 @@ def get_cont_cube(u_idx, v_idx, w_idx, matrix):
 
     return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]], dtype=np.float64)
 
+def phi_coefficient_table(cont_tab):
+   row_sums = np.sum(cont_tab, axis=1)
+   col_sums = np.sum(cont_tab, axis=0)
+
+   return (cont_tab[0,0]*cont_tab[1,1] - cont_tab[1,0]*cont_tab[0,1])/np.sqrt(row_sums[0]*row_sums[1]*col_sums[0]*col_sums[1])
+
+def phi_coefficient_chi(cont_tab, chi):
+
+   n = np.sum(cont_tab)
+
+   return np.sqrt(chi/n)
+
 def chisq_test(cont_tab, expected):
     #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
     #via MLE or iterative proportional fitting.
@@ -143,20 +156,21 @@ def chisq_test(cont_tab, expected):
 
     return test_stat, p_val
 
-def save_pairwise_p_values(bipartite_matrix, savename, bufferlimit=100000):
+def save_pairwise_p_values_phi(bipartite_matrix, savename, bufferlimit=100000):
 
     # create a CSV file
     with open(savename+'.csv', 'w') as csvFile:
         writer = csv.writer(csvFile)
-        writer.writerows([['node index 1', 'node index 2', 'p-value']])
+        writer.writerows([['node index 1', 'node index 2', 'p-value', 'phi-coefficient']])
 
     buffer = []
     count = 0
-    for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
+    for one_simplex in tqdm(itertools.combinations(range(bipartite_matrix.shape[0]), 2)):
         contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
         expected_table = mle_2x2_ind(contingency_table)
+        phi = phi_coefficient_table(contingency_table)
         chi2, p = chisq_test(contingency_table, expected_table)
-        buffer.append([one_simplex[0], one_simplex[1], p])
+        buffer.append([one_simplex[0], one_simplex[1], p, phi])
         count += 1
         if count == bufferlimit:
             with open(savename+'.csv', 'a') as csvFile:
@@ -169,6 +183,26 @@ def save_pairwise_p_values(bipartite_matrix, savename, bufferlimit=100000):
     with open(savename + '.csv', 'a') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
+
+def read_pairwise_p_values(filename, alpha=0.01):
+
+    graph = nx.Graph()
+
+    with open(filename, 'r') as csvfile:
+
+        reader = csv.reader(csvfile)
+        next(reader)
+
+        for row in tqdm(reader):
+
+            if row[-1] != 'nan':
+                p = float(row[-2])
+                if p < alpha:
+                    # Reject H_0 in which we suppose that u and v are independent
+                    # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-1]))
+
+    return graph
 
 def find_n_simplices_vector(vector, n):
 
@@ -324,31 +358,6 @@ def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
         # Thus, we add a link between u and v in the graph.
         graph.add_edge(u_idx, v_idx)
 
-def read_pairwise_p_values(filename, alpha=0.01):
-    graph = nx.Graph()
-    with open(filename, 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        row_count = 0
-        for row in tqdm(reader):
-            if row_count == 0 :
-                row_count += 1
-                pass
-            else:
-                if row[-1] != 'nan':
-                    p = float(row[-1])
-                    if p > alpha:
-                        # Cannot reject H_0 in which we suppose that u and v are independent
-                        # Thus, we do not add the link between u and v in the graph
-                        pass
-                    else:
-                        # print('Rejected H0')
-                        # Reject H_0 and accept H_1 in which we suppose that u and v are dependent
-                        # Thus, we add a link between u and v in the graph.
-                        graph.add_edge(int(row[0]), int(row[1]))
-
-    return graph
-
-
 def save_triplets_p_values(bipartite_matrix, nodelist, savename, bufferlimit=100000):
 
     # create a CSV file
@@ -426,6 +435,41 @@ def save_all_triangles(G, savename, bufferlimit=100000):
     with open(savename + '.csv', 'a') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
+
+def save_all_new_triangles(G, csvtocomparewith, savename, bufferlimit=100000):
+    G = copy.deepcopy(G)
+    with open(savename + '.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3']])
+    buffer = []
+    # Iterate over all possible triangle relationship combinations
+    count = 0
+    with open(csvtocomparewith + '.csv', 'w') as compare:
+        existinglines = {tuple(line) for line in csv.reader(compare, delimiter=',')}
+        for node in list(G.nodes):
+            if G.degree[node] < 2:
+                G.remove_node(node)
+            else:
+                for n1, n2 in itertools.combinations(G.neighbors(node), 2):
+
+                    # Check if n1 and n2 have an edge between them
+                    if G.has_edge(n1, n2):
+                        buffer.append([node, n1, n2])
+                        count += 1
+
+                G.remove_node(node)
+
+                if count == bufferlimit:
+                    with open(savename + '.csv', 'a') as csvFile:
+                        writer = csv.writer(csvFile)
+                        writer.writerows(buffer)
+                        count = 0
+                        # empty the buffer
+                        buffer = []
+
+        with open(savename + '.csv', 'a') as csvFile:
+            writer = csv.writer(csvFile)
+            writer.writerows(buffer)
 
 def save_all_n_cliques(G, n, savename, bufferlimit=100000):
     G = copy.deepcopy(G)
@@ -511,6 +555,47 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
         writer.writerows(buffer)
         return none_count
 
+
+def new_triangles_p_values_AB_AC_BC(csvfile, csvtocomparewith, savename, matrix, bufferlimit=100000):
+
+    buffer = []
+
+    with open(csvfile, 'r') as csvfile, open(savename, 'w') as fout, open(csvtocomparewith + '.csv', 'w') as compare:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        existinglines = {tuple(line) for line in csv.reader(compare, delimiter=',')}
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        count = 0
+        none_count = 0
+        next(reader)
+        for row in tqdm(reader):
+
+            if row not in existinglines:
+
+                cont_cube = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
+
+                p_value = pvalue_AB_AC_BC(cont_cube)
+
+                if p_value is not None:
+                    buffer.append([int(row[0]), int(row[1]), int(row[2]), p_value])
+                    count += 1
+                else :
+                    buffer.append([int(row[0]), int(row[1]), int(row[2]), str(p_value)])
+                    none_count += 1
+
+                if count == bufferlimit:
+                    with open(savename + '.csv', 'a') as csvFile:
+                        writer = csv.writer(csvFile)
+                        writer.writerows(buffer)
+                        count = 0
+                        # empty the buffer
+                        buffer = []
+
+
+            writer = fout.writer(csvFile)
+            writer.writerows(buffer)
+            return none_count
+
 def count_triangles_csv(filename):
     with open(filename, 'r') as csvfile:
         reader = csv.reader(csvfile)
@@ -538,8 +623,60 @@ def extract_2_simplex_from_csv(csvfilename, alpha, savename):
 
 if __name__ == '__main__':
 
-    extract_2_simplex_from_csv("/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv", 0.001, "extracted")
+    ######## First step : extract all links, their p-value and their phi-coefficient
+    #### Load matrix
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+
+    #### Transform into occurrence matrix
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+
+    #### Save all links and values to CSV file
+    #save_pairwise_p_values_phi(matrix1, 'change')
+    #exit()
+
+    ######## Second step : Choose alpha and extract the network
+    g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
+
+    print("Network density : ", nx.density(g))
+    print("Is connected : ", nx.is_connected(g))
+    print("Triadic closure : ", nx.transitivity(g))
+    degree_sequence = sorted([d for n, d in g.degree()], reverse=True)  # degree sequence
+    degreeCount = collections.Counter(degree_sequence)
+    deg, cnt = zip(*degreeCount.items())
+
+    fig, ax = plt.subplots()
+    plt.bar(deg, cnt/np.sum(cnt), width=0.80, color='b')
+    plt.title("Degree Histogram")
+    plt.ylabel("Count")
+    plt.xlabel("Degree")
+    #ax.set_xticks([d + 0.4 for d in deg])
+    #ax.set_xticklabels(deg)
+    plt.show()
+
+    # Bunch of stats can be found here : https://networkx.github.io/documentation/stable/reference/functions.html
+
     exit()
+
+    ######## Third step : Find all triangles in the previous network
+
+    g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
+    exit()
+
+    #### TODO Changer la fonction pour sauvegarder les phis associés à chaque pair de lien au sein du triangle
+    save_all_triangles(g, 'triangles_001_final_otu')
+
+    exit()
+
+
+    #with open('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'r') as file1:
+    #    existinglines = {tuple(line) for line in csv.reader(file1, delimiter=',')}
+    #existinglines = set(existinglines)
+    #print(('295', '2270', '480')in existinglines)
+    #print(len(existinglines))
+
+    #exit()
+    #extract_2_simplex_from_csv("/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv", 0.001, "extracted")
+    #exit()
     #xijk = np.ones((2, 2, 2))
 
     #xijk[0, 0, 0] = 156
@@ -578,14 +715,14 @@ if __name__ == '__main__':
     #G.add_edges_from([(1, 2), (2, 3), (3, 1), (1, 4), (1, 5), (4, 5), (2, 6), (2, 7), (7, 6), (3, 8), (3, 9), (9, 8)])
     #g = read_pairwise_p_values('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 0.001)
     #ls = list(g.nodes)
-    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
-    cont = get_cont_cube(1, 331, 2151, matrix1)
-    cont[0,1,1] = 0.5
-    cont[1,0,1] = 0.5
-    cont[1,1,0] = 0.5
-    print(cont)
-    print(pvalue_AB_AC_BC(cont))
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    #cont = get_cont_cube(1, 331, 2151, matrix1)
+    #cont[0,1,1] = 0.5
+    #cont[1,0,1] = 0.5
+    #cont[1,1,0] = 0.5
+    #print(cont)
+    #print(pvalue_AB_AC_BC(cont))
     #exit()
     #print(triangles_p_values_AB_AC_BC('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'triangles_pvalues_alpha001donterase', matrix1))
     #exit()
@@ -595,7 +732,7 @@ if __name__ == '__main__':
     #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv'))
     #print(count_triangles_csv('/home/xavier/Documents/Projet/Betti_scm/triangles_pvalues_alpha001.csv'))
     #print(sum(nx.triangles(g).values()) / 3)
-    exit()
+    #exit()
     #print(get_nb_cliques_by_length(g,3))
     #exit()
     #print(sum(nx.triangles(g).values()) / 3)
@@ -625,14 +762,14 @@ if __name__ == '__main__':
 
     #nodelist = list(g.nodes)
     #print(len(nodelist))
-    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
-    exit()
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    #exit()
     #print(matrix1[917,:])
     #chisq_test(get_cont_table(1,261, matrix1))
-    cont_tab = get_cont_table(0, 768, matrix1)
-    print(chisq_test(cont_tab, mle_2x2_ind(cont_tab)))
-    exit()
+    #cont_tab = get_cont_table(0, 768, matrix1)
+    #print(chisq_test(cont_tab, mle_2x2_ind(cont_tab)))
+    #exit()
 
     #save_triplets_p_values(matrix1, nodelist, 'triplet_p_value')
     #exit()
@@ -651,18 +788,18 @@ if __name__ == '__main__':
 
     #exit()
     #### plot distributions
-    fignum = 1
-    for i in range(0, 3):
+    #fignum = 1
+    #for i in range(0, 3):
 
         #plt.figure(fignum)
         ##fig, ax = plt.subplots()
-        bcount = np.load(str(i) + 'bcounts.npy')
+        #bcount = np.load(str(i) + 'bcounts.npy')
 
         ## plot probability distribution
-        matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-        nb_species = matrix1.shape[0]
-        spec_choose_3 = sp.misc.comb(nb_species, i + 1)
-        prob_dist = histo_prob_dist(bcount, spec_choose_3)
+        #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+        #nb_species = matrix1.shape[0]
+        #spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+        #prob_dist = histo_prob_dist(bcount, spec_choose_3)
         ## print(np.sum(prob_dist))
         ## print(np.sum(prob_dist *np.arange(0, 35)**2 / 35))
         #plt.bar(np.arange(len(bcount)), prob_dist)
@@ -670,16 +807,16 @@ if __name__ == '__main__':
         ## plt.show()
         #fignum += 1
         # plot cumulative distribution
-        plt.figure(fignum)
-        matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-        nb_species = matrix1.shape[0]
-        spec_choose_3 = sp.misc.comb(nb_species, i + 1)
-        cumul = cumulative_dist(prob_dist)
-        print(cumul)
-        plt.plot(np.arange(len(cumul)), cumul, label=str(i)+'-simplices')
-        plt.xlabel('Number of appearences')
-        plt.ylabel('Cumulative probability')
-        plt.title(str(i)+'-simplices')
+        #plt.figure(fignum)
+        #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+        #nb_species = matrix1.shape[0]
+        #spec_choose_3 = sp.misc.comb(nb_species, i + 1)
+        #cumul = cumulative_dist(prob_dist)
+        #print(cumul)
+        #plt.plot(np.arange(len(cumul)), cumul, label=str(i)+'-simplices')
+        #plt.xlabel('Number of appearences')
+        #plt.ylabel('Cumulative probability')
+        #plt.title(str(i)+'-simplices')
         # plt.show()
         #fignum += 1
 
@@ -695,81 +832,81 @@ if __name__ == '__main__':
         #plt.title(str(i) + '-simplices')
         ## plt.show()
         #fignum += 1
-    plt.legend()
-    plt.show()
-    exit()
+    #plt.legend()
+    #plt.show()
+    #exit()
 
     ########## plot count histogram (without 0)
-    fig, ax = plt.subplots()
-    ax.bar(np.arange(len(bcount)), bcount)
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    plt.xlabel('Number of appearences')
-    plt.ylabel('Number of simplicies')
-    plt.show()
+    #fig, ax = plt.subplots()
+    #ax.bar(np.arange(len(bcount)), bcount)
+    #ax.set_yscale('log')
+    #ax.set_xscale('log')
+    #plt.xlabel('Number of appearences')
+    #plt.ylabel('Number of simplicies')
+    #plt.show()
 
-    exit()
+    #exit()
 
 
 
-    fig, ax = plt.subplots()
-    bcount = np.load('bcount.npy')
+    #fig, ax = plt.subplots()
+    #bcount = np.load('bcount.npy')
 
-    # plot probability distribution
-    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    nb_species = matrix1.shape[0]
-    spec_choose_3 = sp.misc.comb(nb_species, 3)
-    prob_dist = histo_prob_dist(bcount, spec_choose_3)
-    print(np.sum(prob_dist))
-    print(np.sum(prob_dist *np.arange(0, 35)**2 / 35))
-    ax.bar(np.arange(len(bcount)), prob_dist)
-    plt.show()
+    ## plot probability distribution
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #nb_species = matrix1.shape[0]
+    #spec_choose_3 = sp.misc.comb(nb_species, 3)
+    #prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #print(np.sum(prob_dist))
+    #print(np.sum(prob_dist *np.arange(0, 35)**2 / 35))
+    #ax.bar(np.arange(len(bcount)), prob_dist)
+    #plt.show()
 
-    # plot cumulative distribution
-    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    nb_species = matrix1.shape[0]
-    spec_choose_3 = sp.misc.comb(nb_species, 3)
-    prob_dist = histo_prob_dist(bcount, spec_choose_3)
-    cumul = cumulative_dist(prob_dist)
-    print(cumul)
-    plt.plot(np.arange(len(cumul)), cumul)
-    plt.xlabel('Number of appearences')
-    plt.ylabel('Cumulative probability')
-    plt.show()
+    ## plot cumulative distribution
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #nb_species = matrix1.shape[0]
+    #spec_choose_3 = sp.misc.comb(nb_species, 3)
+    #prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #cumul = cumulative_dist(prob_dist)
+    #print(cumul)
+    #plt.plot(np.arange(len(cumul)), cumul)
+    #plt.xlabel('Number of appearences')
+    #plt.ylabel('Cumulative probability')
+    #plt.show()
 
-    # plot complementary cumulative dist
-    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
-    nb_species = matrix1.shape[0]
-    spec_choose_3 = sp.misc.comb(nb_species, 3)
-    prob_dist = histo_prob_dist(bcount, spec_choose_3)
-    cumul = cumulative_dist(prob_dist)
-    plt.plot(np.arange(len(cumul)), 1 - cumul)
-    plt.xlabel('Number of appearences')
-    plt.ylabel('1 - Cumulative probability')
-    plt.show()
+    ## plot complementary cumulative dist
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #nb_species = matrix1.shape[0]
+    #spec_choose_3 = sp.misc.comb(nb_species, 3)
+    #prob_dist = histo_prob_dist(bcount, spec_choose_3)
+    #cumul = cumulative_dist(prob_dist)
+    #plt.plot(np.arange(len(cumul)), 1 - cumul)
+    #plt.xlabel('Number of appearences')
+    #plt.ylabel('1 - Cumulative probability')
+    #plt.show()
 
 
     # plot count histogram (without 0)
-    fig, ax = plt.subplots()
-    ax.bar(np.arange(len(bcount)), bcount)
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    plt.xlabel('Number of appearences')
-    plt.ylabel('Number of simplicies')
-    plt.show()
-
-
-    exit()
+    #fig, ax = plt.subplots()
+    #ax.bar(np.arange(len(bcount)), bcount)
+    #ax.set_yscale('log')
+    #ax.set_xscale('log')
+    #plt.xlabel('Number of appearences')
+    #plt.ylabel('Number of simplicies')
+    #plt.show()
 
 
     #exit()
-    start = time.clock()
+
+
+    #exit()
+    #start = time.clock()
     #matrix1 = np.loadtxt('SubOtu4000.txt', skiprows=1, usecols=range(1, 35))
     #find_simplices_matrix_dictio(matrix1, 3)
-    with open(r'simplexdictionary.pickle', 'rb') as f:
-        data = pickle.load(f)
-        get_keys_for_value(data, 34)
-    print('Time taken : ', time.clock()-start)
+    #with open(r'simplexdictionary.pickle', 'rb') as f:
+    #    data = pickle.load(f)
+    #    get_keys_for_value(data, 34)
+    #print('Time taken : ', time.clock()-start)
 
     #find_simplices_matrix(matrix1, 3)
     #                      savepath=r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\testspace\\')
@@ -847,6 +984,35 @@ if __name__ == '__main__':
     # plt.show()
 
     # exit()
+
+
+
+    ########## ESPACE DES FIGURES #############
+
+    # 1- ratio (nbr 1-simplexes détectés) / (nbr de 1-simplexes possibles); (pour différents alpha)
+    total = sp.special.comb(2611, 2)
+    alphalist = np.linspace(0.0001, 0.01, 100)
+    one_simplex_count_list = []
+    pvalue_list = []
+
+    with open('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 'r') as link_file:
+        reader = csv.reader(link_file)
+        next(reader)
+        row_count = 0
+        for row in reader:
+            if row[-1] != 'nan':
+                pvalue_list.append(float(row[-1]))
+    for alpha in alphalist:
+        print(alpha)
+        one_simplex_count_list.append(np.sum(np.array(pvalue_list) < alpha)/total)
+
+    plt.plot(alphalist, one_simplex_count_list)
+    plt.xlabel('alpha')
+    plt.ylabel('Proportion')
+    plt.title('')
+    plt.show()
+
+
 
 
 
