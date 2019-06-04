@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import collections
+import json
 import copy
 import scipy as sp
 import scipy.misc
@@ -392,9 +393,9 @@ def disconnected_network(nodes):
     return g
 
 def build_network(g, matrix, alph):
-    nb_of_simplices = sp.misc.comb(matrix1.shape[0], 2)
+    nb_of_simplices = sp.misc.comb(matrix.shape[0], 2)
     count = 0
-    for one_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 2)):
+    for one_simplex in tqdm(itertools.combinations(range(matrix.shape[0]), 2)):
         #print(str(count) + ' ouf of ' + str(nb_of_simplices))
         contigency_table = get_cont_table(one_simplex[0], one_simplex[1], matrix)
         significant_edge(g, one_simplex[0], one_simplex[1], contigency_table, alpha=alph)
@@ -406,7 +407,7 @@ def save_all_triangles(G, savename, bufferlimit=100000):
     G = copy.deepcopy(G)
     with open(savename + '.csv', 'w') as csvFile:
         writer = csv.writer(csvFile)
-        writer.writerows([['node index 1', 'node index 2', 'node index 3']])
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3']])
     buffer = []
     # Iterate over all possible triangle relationship combinations
     count = 0
@@ -419,7 +420,8 @@ def save_all_triangles(G, savename, bufferlimit=100000):
                 # Check if n1 and n2 have an edge between them
                 if G.has_edge(n1, n2):
 
-                    buffer.append([node, n1, n2])
+                    buffer.append([node, n1, n2, G.get_edge_data(node, n1)['phi'],
+                                   G.get_edge_data(node, n2)['phi'], G.get_edge_data(n1, n2)['phi']])
                     count += 1
 
             G.remove_node(node)
@@ -526,7 +528,7 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
     with open(csvfile, 'r') as csvfile, open(savename, 'w') as fout:
         reader = csv.reader(csvfile)
         writer = csv.writer(fout)
-        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
         count = 0
         none_count = 0
         next(reader)
@@ -536,11 +538,10 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
 
             p_value = pvalue_AB_AC_BC(cont_cube)
 
-            if p_value is not None:
-                buffer.append([int(row[0]), int(row[1]), int(row[2]), p_value])
-                count += 1
-            else :
+            if p_value is None:
                 none_count += 1
+            buffer.append([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p_value])
+            count += 1
 
             if count == bufferlimit:
                 with open(savename + '.csv', 'a') as csvFile:
@@ -610,14 +611,14 @@ def extract_2_simplex_from_csv(csvfilename, alpha, savename):
     with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w') as fout:
         reader = csv.reader(csvfile)
         writer = csv.writer(fout)
-        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
         next(reader)
         for row in tqdm(reader):
-            if row[-1] != 'nan':
+            if row[-1] != 'nan' and row[-1] != 'None':
                 p = float(row[-1])
                 if p < alpha:
                     writer = csv.writer(fout)
-                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), p])
+                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p])
 
 
 
@@ -635,37 +636,66 @@ if __name__ == '__main__':
     #exit()
 
     ######## Second step : Choose alpha and extract the network
-    g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
+    #g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
 
-    print("Network density : ", nx.density(g))
-    print("Is connected : ", nx.is_connected(g))
-    print("Triadic closure : ", nx.transitivity(g))
-    degree_sequence = sorted([d for n, d in g.degree()], reverse=True)  # degree sequence
-    degreeCount = collections.Counter(degree_sequence)
-    deg, cnt = zip(*degreeCount.items())
+    #### Compute a few interesting quantities
+    #print("Network density : ", nx.density(g))
+    #print("Is connected : ", nx.is_connected(g))
+    #print("Triadic closure : ", nx.transitivity(g))
+    #degree_sequence = sorted([d for n, d in g.degree()], reverse=True)  # degree sequence
+    #degreeCount = collections.Counter(degree_sequence)
+    #deg, cnt = zip(*degreeCount.items())
 
-    fig, ax = plt.subplots()
-    plt.bar(deg, cnt/np.sum(cnt), width=0.80, color='b')
-    plt.title("Degree Histogram")
-    plt.ylabel("Count")
-    plt.xlabel("Degree")
+    #fig, ax = plt.subplots()
+    #plt.bar(deg, cnt/np.sum(cnt), width=0.80, color='b')
+    #plt.title("Degree Histogram")
+    #plt.ylabel("Count")
+    #plt.xlabel("Degree")
     #ax.set_xticks([d + 0.4 for d in deg])
     #ax.set_xticklabels(deg)
-    plt.show()
+    #plt.show()
 
     # Bunch of stats can be found here : https://networkx.github.io/documentation/stable/reference/functions.html
 
-    exit()
+    #### to json for d3js :
+
+    #node_dictio_list = []
+    #for noeud in g.nodes:
+    #    node_dictio_list.append({"id":str(noeud)})
+
+    #link_dictio_list = []
+    #for lien in g.edges:
+    #    link_dictio_list.append({"source": str(lien[0]), "value": 1, "target": str(lien[1])})
+
+    #json_diction = {"nodes": node_dictio_list, "links" : link_dictio_list}
+    #with open('data.json', 'w') as outfile:
+    #    json.dump(json_diction, outfile)
+
+    #exit()
+
 
     ######## Third step : Find all triangles in the previous network
 
-    g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
-    exit()
+    #g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
 
-    #### TODO Changer la fonction pour sauvegarder les phis associés à chaque pair de lien au sein du triangle
-    save_all_triangles(g, 'triangles_001_final_otu')
+    #save_all_triangles(g, 'triangles_001_final_otu')
 
-    exit()
+    #exit()
+
+    ######## Fourth step : Find all the p-value for the triangles under the hypothesis of homogeneity
+
+    ### Matrix is needed for the analysis
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+
+    #### Transform into occurrence matrix
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+
+    #triangles_p_values_AB_AC_BC('triangles_001_final_otu', 'triangles_001_final_otu_pvalues', matrix1)
+
+    ######## Fifth step : Exctract all 2-simplices
+
+    #extract_2_simplex_from_csv('triangles_001_final_otu_pvalues', 0.001, 'extracted_2-simplices_001_final_otu')
+
 
 
     #with open('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'r') as file1:
@@ -989,29 +1019,77 @@ if __name__ == '__main__':
 
     ########## ESPACE DES FIGURES #############
 
-    # 1- ratio (nbr 1-simplexes détectés) / (nbr de 1-simplexes possibles); (pour différents alpha)
-    total = sp.special.comb(2611, 2)
-    alphalist = np.linspace(0.0001, 0.01, 100)
-    one_simplex_count_list = []
-    pvalue_list = []
+    #### 1- ratio (nbr 1-simplexes détectés) / (nbr de 1-simplexes possibles); (pour différents alpha)
+    #total = sp.special.comb(2611, 2)
+    #alphalist = np.linspace(0.0001, 0.01, 100)
+    #one_simplex_count_list = []
+    #pvalue_list = []
 
-    with open('/home/xavier/Documents/Projet/Betti_scm/pairwise_p_values_vectorized.csv', 'r') as link_file:
-        reader = csv.reader(link_file)
-        next(reader)
-        row_count = 0
-        for row in reader:
-            if row[-1] != 'nan':
-                pvalue_list.append(float(row[-1]))
-    for alpha in alphalist:
-        print(alpha)
-        one_simplex_count_list.append(np.sum(np.array(pvalue_list) < alpha)/total)
+    #with open('pairwise_pvalues_phi_final_otu.csv', 'r') as link_file:
+    #    reader = csv.reader(link_file)
+    #    next(reader)
+    #    row_count = 0
+    #    for row in reader:
+    #        if row[-2] != 'nan':
+    #            pvalue_list.append(float(row[-2]))
+    #for alpha in alphalist:
+    #    print(alpha)
+    #    one_simplex_count_list.append(np.sum(np.array(pvalue_list) < alpha)/total)
 
-    plt.plot(alphalist, one_simplex_count_list)
-    plt.xlabel('alpha')
-    plt.ylabel('Proportion')
-    plt.title('')
-    plt.show()
+    #plt.plot(alphalist, one_simplex_count_list)
+    #plt.xlabel('alpha')
+    #plt.ylabel('Proportion')
+    #plt.title('')
+    #plt.show()
 
+    ##### 2- fraction des 1-simplexes détectés qui encodent une interaction négative / positive / dans un range ;
+
+    #total = sp.special.comb(2611, 2)
+    #alphalist = [0.001, 0.01]
+    #alphalist = np.linspace(0.0001, 0.01, 100)
+    #one_simplex_count_list = []
+    #pvalue_list = []
+    #phi_list = []
+    #negative_list = []
+    #positive_list = []
+
+    #with open('pairwise_pvalues_phi_final_otu.csv', 'r') as link_file:
+    #    reader = csv.reader(link_file)
+    #    next(reader)
+    #    row_count = 0
+    #    for row in reader:
+    #        if row[-2] != 'nan':
+    #            pvalue_list.append(float(row[-2]))
+    #            phi_list.append(float(row[-1]))
+    #for alpha in alphalist:
+    #    print(alpha)
+    #    mask = (np.array(pvalue_list) < alpha) * 1
+    #    one_simplex_count_list.append(np.sum(np.array(pvalue_list) < alpha))
+    #    negative_list.append(np.sum(np.array(phi_list)*mask < 0))
+    #    positive_list.append(np.sum(np.array(phi_list)*mask > 0))
+    #    print(negative_list[-1], positive_list[-1], negative_list[-1]  + positive_list[-1], one_simplex_count_list[-1])
+
+    #plt.plot(alphalist, one_simplex_count_list/total, label='total')
+    #plt.plot(alphalist, np.array(negative_list)/np.array(one_simplex_count_list) , label='negative')
+    #plt.plot(alphalist, np.array(positive_list) / np.array(one_simplex_count_list), label='positive')
+
+    #plt.plot(alphalist, one_simplex_count_list, label='total')
+    #plt.plot(alphalist, negative_list, label='negative')
+    #plt.plot(alphalist, positive_list, label='positive')
+
+    #plt.xlabel('alpha')
+    #plt.ylabel('Proportion')
+    #plt.title('')
+    #plt.legend(loc=0)
+    #plt.show()
+
+    #3- ratio (2-simplexes détectés)/(2-simplexes possibles);
+
+    #total_nb_triangle = count_triangles_csv('triangles_alpha001.csv')
+    #nb_found_triangles = count_triangles_csv('extracted.csv')
+    #print(nb_found_triangles, total_nb_triangle, nb_found_triangles/total_nb_triangle)
+
+    #4- fraction des 2-simplexes détectés qui contiennent 1 interactionnent négative et la fraction pour 2 interactions négatives;
 
 
 
