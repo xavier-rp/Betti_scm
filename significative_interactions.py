@@ -160,7 +160,7 @@ def chisq_test(cont_tab, expected):
 def save_pairwise_p_values_phi(bipartite_matrix, savename, bufferlimit=100000):
 
     # create a CSV file
-    with open(savename+'.csv', 'w') as csvFile:
+    with open(savename+'.csv', 'w', newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows([['node index 1', 'node index 2', 'p-value', 'phi-coefficient']])
 
@@ -174,14 +174,14 @@ def save_pairwise_p_values_phi(bipartite_matrix, savename, bufferlimit=100000):
         buffer.append([one_simplex[0], one_simplex[1], p, phi])
         count += 1
         if count == bufferlimit:
-            with open(savename+'.csv', 'a') as csvFile:
+            with open(savename+'.csv', 'a', newline='') as csvFile:
                 writer = csv.writer(csvFile)
                 writer.writerows(buffer)
                 count = 0
                 # empty the buffer
                 buffer = []
 
-    with open(savename + '.csv', 'a') as csvFile:
+    with open(savename + '.csv', 'a', newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
 
@@ -223,7 +223,7 @@ def find_n_simplices_vector(vector, n):
 
 def find_simplices_matrix(matrix, n, savepath=''):
     for column in range(matrix.shape[1]):
-        with open(savepath + 'matrix_' +str(column)+'.pickle', 'wb') as file:
+        with open(savepath + 'matrix_' +str(column)+'.pickle', 'wb', newline='') as file:
             print('Finding simplices in column : ', column)
             pickle.dump(find_n_simplices_vector(matrix[:,column], n), file)
 
@@ -288,7 +288,7 @@ def count_labeled_simplices(loadpath, savepath=''):
             # appear in the dictionary before this iteration).
             #original_list = original_list + comparison_list
     # save the dictionary.
-    with open(savepath + 'simplexdictionary.pickle', 'wb') as file:
+    with open(savepath + 'simplexdictionary.pickle', 'wb', newline='') as file:
         pickle.dump(simplex_dictionary, file)
 
 
@@ -320,7 +320,7 @@ def find_simplices_matrix_dictio(matrix, n, savepath=''):
         print('Finding simplices in column : ', column)
         simplex_dictionary = find_n_simplices_vector_dictio(matrix[:, column], n, simplex_dictionary)
 
-    with open(savepath + 'simplexdictionary.pickle', 'wb') as file:
+    with open(savepath + 'simplexdictionary.pickle', 'wb', newline='') as file:
         print('Writting dictionary.')
         pickle.dump(simplex_dictionary, file)
 
@@ -330,7 +330,7 @@ def histo_nb_appearences(simplex_dictionary, savename='bcounts'):
 
 
 def get_keys_for_value(simplex_dictionary, value, savename='keylist.pickle'):
-    with open(savename, 'wb') as f:
+    with open(savename, 'wb', newline='') as f:
         pickle.dump([key for (key, val) in simplex_dictionary.items() if val == value], f)
 
 def histo_prob_dist(bincount, total_number_of_groups):
@@ -362,7 +362,7 @@ def significant_edge(graph, u_idx, v_idx, contingency_table, alpha = 0.05):
 def save_triplets_p_values(bipartite_matrix, nodelist, savename, bufferlimit=100000):
 
     # create a CSV file
-    with open(savename+'.csv', 'w') as csvFile:
+    with open(savename+'.csv', 'w',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(['node index 1', 'node index 2', 'node index 3', 'p-value'])
 
@@ -375,14 +375,14 @@ def save_triplets_p_values(bipartite_matrix, nodelist, savename, bufferlimit=100
         buffer.append([two_simplex[0], two_simplex[1], two_simplex[2], p])
         count += 1
         if count == bufferlimit:
-            with open(savename+'.csv', 'a') as csvFile:
+            with open(savename+'.csv', 'a',  newline='') as csvFile:
                 writer = csv.writer(csvFile)
                 writer.writerows(buffer)
                 count = 0
                 # empty the buffer
                 buffer = []
 
-    with open(savename + '.csv', 'a') as csvFile:
+    with open(savename + '.csv', 'a',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
 
@@ -405,7 +405,7 @@ def build_network(g, matrix, alph):
 
 def save_all_triangles(G, savename, bufferlimit=100000):
     G = copy.deepcopy(G)
-    with open(savename + '.csv', 'w') as csvFile:
+    with open(savename + '.csv', 'w',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3']])
     buffer = []
@@ -427,26 +427,26 @@ def save_all_triangles(G, savename, bufferlimit=100000):
             G.remove_node(node)
 
             if count == bufferlimit:
-                with open(savename + '.csv', 'a') as csvFile:
+                with open(savename + '.csv', 'a',  newline='') as csvFile:
                     writer = csv.writer(csvFile)
                     writer.writerows(buffer)
                     count = 0
                     # empty the buffer
                     buffer = []
 
-    with open(savename + '.csv', 'a') as csvFile:
+    with open(savename + '.csv', 'a',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
 
 def save_all_new_triangles(G, csvtocomparewith, savename, bufferlimit=100000):
     G = copy.deepcopy(G)
-    with open(savename + '.csv', 'w') as csvFile:
+    with open(savename + '.csv', 'w',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows([['node index 1', 'node index 2', 'node index 3']])
     buffer = []
     # Iterate over all possible triangle relationship combinations
     count = 0
-    with open(csvtocomparewith + '.csv', 'w') as compare:
+    with open(csvtocomparewith + '.csv', 'w',  newline='') as compare:
         existinglines = {tuple(line) for line in csv.reader(compare, delimiter=',')}
         for node in list(G.nodes):
             if G.degree[node] < 2:
@@ -462,20 +462,20 @@ def save_all_new_triangles(G, csvtocomparewith, savename, bufferlimit=100000):
                 G.remove_node(node)
 
                 if count == bufferlimit:
-                    with open(savename + '.csv', 'a') as csvFile:
+                    with open(savename + '.csv', 'a',  newline='') as csvFile:
                         writer = csv.writer(csvFile)
                         writer.writerows(buffer)
                         count = 0
                         # empty the buffer
                         buffer = []
 
-        with open(savename + '.csv', 'a') as csvFile:
+        with open(savename + '.csv', 'a',  newline='') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(buffer)
 
 def save_all_n_cliques(G, n, savename, bufferlimit=100000):
     G = copy.deepcopy(G)
-    with open(savename + '.csv', 'w') as csvFile:
+    with open(savename + '.csv', 'w',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         headerlist = []
         for i in range(n):
@@ -507,7 +507,7 @@ def save_all_n_cliques(G, n, savename, bufferlimit=100000):
                     buffer.append(nodes_to_add_list)
                     count += 1
                     if count == bufferlimit:
-                        with open(savename + '.csv', 'a') as csvFile:
+                        with open(savename + '.csv', 'a',  newline='') as csvFile:
                             writer = csv.writer(csvFile)
                             writer.writerows(buffer)
                             count = 0
@@ -517,15 +517,74 @@ def save_all_n_cliques(G, n, savename, bufferlimit=100000):
 
             G.remove_node(node)
 
-    with open(savename + '.csv', 'a') as csvFile:
+    with open(savename + '.csv', 'a',  newline='') as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
+
+def find_clique_dist(G, max_n):
+    G = copy.deepcopy(G)
+    dist_list = []
+
+    for n in range(3, max_n + 1):
+        print('Looking for ' + str(n) + '-cliques.')
+        count = 0
+        nodecount = 0
+        for node in list(G.nodes):
+            nodecount += 1
+            print('Node ' + str(nodecount) + ' out of ' + str(len(list(G.nodes))))
+            if G.degree[node] < n - 1:
+                G.remove_node(node)
+            else:
+                for neighbors in itertools.combinations(G.neighbors(node), n - 1):
+
+                    # Check if all pairs have an edge between them
+                    switch = True
+                    for pair in itertools.combinations(neighbors, 2):
+
+                        if G.has_edge(pair[0], pair[1]):
+                            pass
+
+                        else :
+                            switch = False
+                            break
+                    if switch :
+                        count += 1
+
+        dist_list.append(count)
+
+    return dist_list
+
+def find_clique_dist_2(G, max_n=None):
+    max_cliques_list = list(nx.find_cliques(G))
+    clique_count_dict = {}
+    if max_n is None:
+        for clique in max_cliques_list:
+            cliquelen = len(clique)
+            if cliquelen > 2:
+                for n in range(cliquelen, 1, -1):
+                    try :
+                        clique_count_dict[str(n)] += sp.special.comb(cliquelen, n)
+                    except :
+                        clique_count_dict[str(n)] = sp.special.comb(cliquelen, n)
+
+    else:
+        for clique in max_cliques_list:
+            cliquelen = len(clique)
+            if cliquelen > 2:
+                for n in range(max_n, 1, -1):
+                    try:
+                        clique_count_dict[str(n)] += sp.special.comb(cliquelen, n)
+                    except:
+                        clique_count_dict[str(n)] = sp.special.comb(cliquelen, n)
+    return clique_count_dict
+
+
 
 def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
 
     buffer = []
 
-    with open(csvfile, 'r') as csvfile, open(savename, 'w') as fout:
+    with open(csvfile, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
         reader = csv.reader(csvfile)
         writer = csv.writer(fout)
         writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
@@ -544,15 +603,12 @@ def triangles_p_values_AB_AC_BC(csvfile, savename, matrix, bufferlimit=100000):
             count += 1
 
             if count == bufferlimit:
-                with open(savename + '.csv', 'a') as csvFile:
-                    writer = csv.writer(csvFile)
-                    writer.writerows(buffer)
-                    count = 0
-                    # empty the buffer
-                    buffer = []
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
 
 
-        writer = fout.writer(csvFile)
         writer.writerows(buffer)
         return none_count
 
@@ -561,7 +617,7 @@ def new_triangles_p_values_AB_AC_BC(csvfile, csvtocomparewith, savename, matrix,
 
     buffer = []
 
-    with open(csvfile, 'r') as csvfile, open(savename, 'w') as fout, open(csvtocomparewith + '.csv', 'w') as compare:
+    with open(csvfile, 'r') as csvfile, open(savename, 'w',  newline='') as fout, open(csvtocomparewith + '.csv', 'w', newline='') as compare:
         reader = csv.reader(csvfile)
         writer = csv.writer(fout)
         existinglines = {tuple(line) for line in csv.reader(compare, delimiter=',')}
@@ -585,7 +641,7 @@ def new_triangles_p_values_AB_AC_BC(csvfile, csvtocomparewith, savename, matrix,
                     none_count += 1
 
                 if count == bufferlimit:
-                    with open(savename + '.csv', 'a') as csvFile:
+                    with open(savename + '.csv', 'a',  newline='') as csvFile:
                         writer = csv.writer(csvFile)
                         writer.writerows(buffer)
                         count = 0
@@ -608,21 +664,80 @@ def count_triangles_csv(filename):
 
 def extract_2_simplex_from_csv(csvfilename, alpha, savename):
 
-    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w') as fout:
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
         reader = csv.reader(csvfile)
         writer = csv.writer(fout)
         writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
         next(reader)
         for row in tqdm(reader):
-            if row[-1] != 'nan' and row[-1] != 'None':
-                p = float(row[-1])
+            try :
+                p = float(row[6])
                 if p < alpha:
                     writer = csv.writer(fout)
                     writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p])
+            except:
+                pass
+
+            #if row[-1] != 'nan' and row[-1] != 'None':
+            #    p = float(row[-1])
+            #    if p < alpha:
+            #        writer = csv.writer(fout)
+            #        writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p])
+
+def extract_converged_triangles(csvfilename, savename):
+
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            try :
+                p = float(row[6])
+                writer = csv.writer(fout)
+                writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p])
+            except:
+                pass
+
+def extract_phi_for_triangles(csvfilename):
+    with open(csvfilename, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        pure_negative_count = 0
+        pure_positive_count = 0
+        one_pos_two_neg = 0
+        two_pos_one_neg = 0
+
+        for row in reader:
+            try:
+                philist = [float(row[3]), float(row[4]), float(row[5])]
+                philistmask = (np.array(philist) > 0) * 1
+                sum = np.sum(philistmask)
+                if sum == 3:
+                    pure_positive_count += 1
+                elif sum == 0:
+                    pure_negative_count += 1
+                elif sum == 1:
+                    one_pos_two_neg += 1
+                else:
+                    two_pos_one_neg += 1
+            except:
+                pass
+
+    return [pure_negative_count, one_pos_two_neg, two_pos_one_neg, pure_positive_count]
 
 
 
 if __name__ == '__main__':
+    #print(count_triangles_csv(r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_triangles_001_final_otu_pvalues.csv'))
+    #exit()
+    g = read_pairwise_p_values(
+        r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_final_otu_pairwise_pvalue_phi.csv',
+        0.001)
+    print(find_clique_dist_2(g, 3))
+    exit()
+    print(extract_phi_for_triangles('extracted_2-simplices_001_final_otu.csv'))
+    exit()
 
     ######## First step : extract all links, their p-value and their phi-coefficient
     #### Load matrix
@@ -632,71 +747,167 @@ if __name__ == '__main__':
     #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
 
     #### Save all links and values to CSV file
-    #save_pairwise_p_values_phi(matrix1, 'change')
+    #save_pairwise_p_values_phi(matrix1, 'windows_final_otu_pairwise_pvalue_phi')
     #exit()
 
     ######## Second step : Choose alpha and extract the network
-    #g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
+    #g = read_pairwise_p_values('windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
 
-    #### Compute a few interesting quantities
+    ##### Compute a few interesting quantities
     #print("Network density : ", nx.density(g))
     #print("Is connected : ", nx.is_connected(g))
-    #print("Triadic closure : ", nx.transitivity(g))
+    ##print("Triadic closure : ", nx.transitivity(g))
     #degree_sequence = sorted([d for n, d in g.degree()], reverse=True)  # degree sequence
+    #print("Average degree : ", np.sum(np.array(degree_sequence))/len(degree_sequence))
     #degreeCount = collections.Counter(degree_sequence)
     #deg, cnt = zip(*degreeCount.items())
 
     #fig, ax = plt.subplots()
-    #plt.bar(deg, cnt/np.sum(cnt), width=0.80, color='b')
+    ##plt.bar(deg, cnt/np.sum(cnt), width=10, color='b')
+    #n, bins, patches = plt.hist(degree_sequence, np.arange(0, 600, 10), density=True, facecolor='g', alpha=0.75)
     #plt.title("Degree Histogram")
     #plt.ylabel("Count")
     #plt.xlabel("Degree")
-    #ax.set_xticks([d + 0.4 for d in deg])
-    #ax.set_xticklabels(deg)
+    ##ax.set_xticks([d + 0.4 for d in deg])
+    ##ax.set_xticklabels(deg)
     #plt.show()
+
+    #exit()
 
     # Bunch of stats can be found here : https://networkx.github.io/documentation/stable/reference/functions.html
 
     #### to json for d3js :
 
+    g = read_pairwise_p_values(r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
+    label_list = []
+    with open('groupes_otu.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            try:
+                label_list.append(row[1])
+            except:
+                if row[0] != 'Bacteria':
+                    label_list.append(row[0])
+                else:
+                    label_list.append(label_list[-1])
+
     #node_dictio_list = []
     #for noeud in g.nodes:
-    #    node_dictio_list.append({"id":str(noeud)})
+    #    node_dictio_list.append({"id": str(noeud), "group": label_list[noeud]})
+    #    #node_dictio_list.append({"id":str(noeud)})
 
     #link_dictio_list = []
     #for lien in g.edges:
     #    link_dictio_list.append({"source": str(lien[0]), "value": 1, "target": str(lien[1])})
 
     #json_diction = {"nodes": node_dictio_list, "links" : link_dictio_list}
-    #with open('data.json', 'w') as outfile:
+    #with open('complete_otu_grouped.json', 'w') as outfile:
+    #    json.dump(json_diction, outfile)
+    #exit()
+    # Extract nodes with groups :
+    ######groupe_set = set()
+    ######with open('groupes_otu.csv', 'r') as csvfile:
+    ######    reader = csv.reader(csvfile)
+    ######    for row in reader:
+    ######        try:
+    ######            groupe_set.add(row[1])
+    ######        except:
+    ######            if row[0] != 'Bacteria':
+    ######                groupe_set.add(row[0])
+    ######print(len(groupe_set))
+    ######print(groupe_set)
+    #node_dictio_list = []
+    #label_list = []
+    #with open('groupes_otu.csv', 'r') as csvfile:
+    #    reader = csv.reader(csvfile)
+    #    for row in reader:
+    #        try:
+    #            label_list.append(row[1])
+    #        except:
+    #            if row[0] != 'Bacteria':
+    #                label_list.append(row[0])
+    #            else:
+    #                label_list.append(label_list[-1])
+
+    #link_dictio_list = []
+    #node_set = set()
+    #for lien in g.edges:
+    #    if g.get_edge_data(lien[0], lien[1])['phi'] < 0 :
+    #        #link_dictio_list.append({"source": str(lien[0]), "value": g.get_edge_data(lien[0], lien[1])['phi'], "target": str(lien[1])})
+    #        link_dictio_list.append({"source": str(lien[0]), "value": 1, "target": str(lien[1])})
+    #        node_set.add(lien[0])
+    #        node_set.add(lien[1])
+
+    #node_dictio_list = []
+    #for noeud in list(node_set):
+    #    node_dictio_list.append({"id": str(noeud), "group": label_list[noeud]})
+    #    #node_dictio_list.append({"id": str(noeud)})
+
+
+    #json_diction = {"nodes": node_dictio_list, "links": link_dictio_list}
+    #with open('negative_interactions_otu_graph_grouped.json', 'w') as outfile:
     #    json.dump(json_diction, outfile)
 
     #exit()
+    link_dictio_list = []
+    node_set = set()
+    for lien in g.edges:
+        if g.get_edge_data(lien[0], lien[1])['phi'] > 0:
+            #link_dictio_list.append(
+            #    {"source": str(lien[0]), "value": g.get_edge_data(lien[0], lien[1])['phi'], "target": str(lien[1])})
+            link_dictio_list.append(
+                {"source": str(lien[0]), "value": 1, "target": str(lien[1])})
+            node_set.add(lien[0])
+            node_set.add(lien[1])
+
+    node_dictio_list = []
+    for noeud in list(node_set):
+        node_dictio_list.append({"id": str(noeud), "group": label_list[noeud]})
+        #node_dictio_list.append({"id": str(noeud)})
+
+    json_diction = {"nodes": node_dictio_list, "links": link_dictio_list}
+    with open('positive_interactions_otu_grouped.json', 'w') as outfile:
+        json.dump(json_diction, outfile)
+
+    exit()
 
 
     ######## Third step : Find all triangles in the previous network
 
-    #g = read_pairwise_p_values('pairwise_pvalues_phi_final_otu.csv', 0.001)
+    #g = read_pairwise_p_values('windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
 
-    #save_all_triangles(g, 'triangles_001_final_otu')
+    #save_all_triangles(g, 'windows_triangles_001_final_otu')
 
     #exit()
 
     ######## Fourth step : Find all the p-value for the triangles under the hypothesis of homogeneity
 
-    ### Matrix is needed for the analysis
+    #### Matrix is needed for the analysis
     #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
 
     #### Transform into occurrence matrix
     #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
 
-    #triangles_p_values_AB_AC_BC('triangles_001_final_otu', 'triangles_001_final_otu_pvalues', matrix1)
+    #triangles_p_values_AB_AC_BC('windows_triangles_001_final_otu.csv', 'windows_triangles_001_final_otu_pvalues', matrix1)
 
     ######## Fifth step : Exctract all 2-simplices
 
-    #extract_2_simplex_from_csv('triangles_001_final_otu_pvalues', 0.001, 'extracted_2-simplices_001_final_otu')
+    #extract_2_simplex_from_csv('windows_triangles_001_final_otu_pvalues.csv', 0.001, 'extracted_2-simplices_001_final_otu')
+
+    #extract_converged_triangles('windows_triangles_001_final_otu_pvalues.csv', 'converged_triangles')
+
+    #exit()
+
+    ################# DONE ###################
 
 
+    ######################################################TEST SPACE####################################################
+
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    #cont = get_cont_cube(552,1237,1821, matrix1)
+    #print(cont)
+    #print(pvalue_AB_AC_BC(cont))
 
     #with open('/home/xavier/Documents/Projet/Betti_scm/triangles_alpha001.csv', 'r') as file1:
     #    existinglines = {tuple(line) for line in csv.reader(file1, delimiter=',')}
@@ -1090,13 +1301,3 @@ if __name__ == '__main__':
     #print(nb_found_triangles, total_nb_triangle, nb_found_triangles/total_nb_triangle)
 
     #4- fraction des 2-simplexes détectés qui contiennent 1 interactionnent négative et la fraction pour 2 interactions négatives;
-
-
-
-
-
-
-
-
-
-
