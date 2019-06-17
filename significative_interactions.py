@@ -24,6 +24,13 @@ def pvalue_AB_AC_BC(cont_cube):
     else:
         return expected
 
+def pvalue_ABC_ABD_ACD_BCD(hyper_cont_cube):
+    expected = ipf_ABC_ABD_ACD_BCD_no_zeros(hyper_cont_cube)
+    if expected is not None:
+        return chisq_test(hyper_cont_cube, expected)[1]
+    else:
+        return expected
+
 def test_models(cont_cube, alpha):
     models = ['ind', 'AB_C', 'AC_B', 'BC_A', 'AB_AC', 'AB_BC', 'AC_BC', 'AB_AC_BC', 'ABC']
     p_value_list = []
@@ -134,6 +141,80 @@ def get_cont_cube(u_idx, v_idx, w_idx, matrix):
     table111 = np.sum(row_u_not*row_v_not*row_w_not)
 
     return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]], dtype=np.float64)
+
+def get_hyper_cont_cube(u_idx, v_idx, w_idx, x_idx, matrix):
+    # Computes the 2X2X2X2 contingency table for the occurrence matrix
+
+    row_u_present = matrix[u_idx, :]
+    row_v_present = matrix[v_idx, :]
+    row_w_present = matrix[w_idx, :]
+    row_x_present = matrix[x_idx, :]
+
+    row_u_not = 1 - row_u_present
+    row_v_not = 1 - row_v_present
+    row_w_not = 1 - row_w_present
+    row_x_not = 1 - row_x_present
+
+    #All present :
+    table0000 =np.sum(row_u_present*row_v_present*row_w_present*row_x_present)
+
+    # v absent
+    table0100 = np.sum(row_u_present*row_v_not*row_w_present*row_x_present)
+
+    # u absent
+    table1000 = np.sum(row_u_not*row_v_present*row_w_present*row_x_present)
+
+    # u absent, v absent
+    table1100 = np.sum(row_u_not*row_v_not*row_w_present*row_x_present)
+
+    # w absent
+    table0010 = np.sum(row_u_present*row_v_present*row_w_not*row_x_present)
+
+    # v absent, w absent
+    table0110 = np.sum(row_u_present*row_v_not*row_w_not*row_x_present)
+
+    # u absent, w absent
+    table1010 = np.sum(row_u_not*row_v_present*row_w_not*row_x_present)
+
+    # u absent, v absent, w absent
+    table1110 = np.sum(row_u_not*row_v_not*row_w_not*row_x_present)
+
+    # x absent
+    table0001 = np.sum(row_u_present * row_v_present * row_w_present * row_x_not)
+
+    # v absent, x absent
+    table0101 = np.sum(row_u_present * row_v_not * row_w_present * row_x_not)
+
+    # u absent, x absent
+    table1001 = np.sum(row_u_not * row_v_present * row_w_present * row_x_not)
+
+    # u absent, v absent, x absent
+    table1101 = np.sum(row_u_not * row_v_not * row_w_present * row_x_not)
+
+    # w absent, x absent
+    table0011 = np.sum(row_u_present * row_v_present * row_w_not * row_x_not)
+
+    # v absent, w absent, x absent
+    table0111 = np.sum(row_u_present * row_v_not * row_w_not * row_x_not)
+
+    # u absent, w absent, x absent
+    table1011 = np.sum(row_u_not * row_v_present * row_w_not * row_x_not)
+
+    # all absent
+    table1111 = np.sum(row_u_not * row_v_not * row_w_not * row_x_not)
+
+    xpresentarray = np.array([[[table0000, table0100], [table1000, table1100]], [[table0010, table0110], [table1010, table1110]]], dtype=np.float64)
+
+    xnotarray = np.array([[[table0001, table0101], [table1001, table1101]], [[table0011, table0111], [table1011, table1111]]], dtype=np.float64)
+
+    hypercontcube = np.random.rand(2, 2, 2, 2)
+
+    hypercontcube[0, :, :, :] = xpresentarray
+
+    hypercontcube[1, :, :, :] = xnotarray
+
+    return hypercontcube
+
 
 def phi_coefficient_table(cont_tab):
    row_sums = np.sum(cont_tab, axis=1)
@@ -726,18 +807,140 @@ def extract_phi_for_triangles(csvfilename):
 
     return [pure_negative_count, one_pos_two_neg, two_pos_one_neg, pure_positive_count]
 
+def find_4_cliques(G, fourcliquecsv):
 
+    G = copy.deepcopy(G)
+
+    nodecount = 0
+    with open(fourcliquecsv + '.csv', 'w', newline='') as fccsv:
+        writer = csv.writer(fccsv)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'node index 4', 'phi 1-2', 'phi 1-3', 'phi 1-4', 'phi 2-3', 'phi 2-4', 'phi 3-4']])
+        nodelist = list(G.nodes)
+        for node in nodelist:
+            nodecount += 1
+            print('Node ' + str(nodecount) + ' out of ' + str(len(nodelist)))
+            if G.degree[node] < 3:
+                G.remove_node(node)
+            else:
+                for neighbors in itertools.combinations(G.neighbors(node), 3):
+
+                    # Check if all pairs have an edge between them
+                    switch = True
+                    for pair in itertools.combinations(neighbors, 2):
+
+                        if G.has_edge(pair[0], pair[1]):
+                            pass
+
+                        else:
+                            switch = False
+                            break
+                    if switch:
+                        writer.writerows([[node, neighbors[0], neighbors[1], neighbors[2],
+                                           G.get_edge_data(node, neighbors[0])['phi'],
+                                           G.get_edge_data(node, neighbors[1])['phi'],
+                                           G.get_edge_data(node, neighbors[2])['phi'],
+                                           G.get_edge_data(neighbors[0], neighbors[1])['phi'],
+                                           G.get_edge_data(neighbors[0], neighbors[2])['phi'],
+                                           G.get_edge_data(neighbors[1], neighbors[2])['phi']]])
+                G.remove_node(node)
+
+def triangles_to_network(extracted_triangle_file):
+    graph = nx.Graph()
+    with open(extracted_triangle_file, 'r') as extracted_tri_csvfile:
+
+        reader = csv.reader(extracted_tri_csvfile)
+        next(reader)
+
+        for row in reader:
+            graph.add_edge(int(row[0]), int(row[1]), phi=float(row[3]))
+            graph.add_edge(int(row[0]), int(row[2]), phi=float(row[4]))
+            graph.add_edge(int(row[1]), int(row[2]), phi=float(row[5]))
+
+    return graph
+
+def tetrahedron_p_values_ABC_ABD_ACD_BCD(tetrahedroncsv, savename, matrix, bufferlimit=100000):
+
+    buffer = []
+
+    with open(tetrahedroncsv, 'r') as tetracsvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(tetracsvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'node index 4', 'phi 1-2', 'phi 1-3', 'phi 1-4', 'phi 2-3', 'phi 2-4', 'phi 3-4', 'p-value']])
+        count = 0
+        none_count = 0
+        next(reader)
+        for row in tqdm(reader):
+
+            hyper_cont_cube = get_hyper_cont_cube(int(row[0]), int(row[1]), int(row[2]), int(row[3]), matrix)
+
+            p_value = pvalue_ABC_ABD_ACD_BCD(hyper_cont_cube)
+
+            if p_value is None:
+                none_count += 1
+            buffer.append([int(row[0]), int(row[1]), int(row[2]), int(row[3]), float(row[4]), float(row[5]),
+                           float(row[6]), float(row[7]), float(row[8]), float(row[9]), p_value])
+            count += 1
+
+            if count == bufferlimit:
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
+
+
+        writer.writerows(buffer)
+
+    return none_count
+
+def extract_3_simplex_from_csv(csvfilename, alpha, savename):
+
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'node index 4', 'phi 1-2', 'phi 1-3', 'phi 1-4', 'phi 2-3', 'phi 2-4', 'phi 3-4', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            try :
+                p = float(row[6])
+                if p < alpha:
+                    writer = csv.writer(fout)
+                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]),
+                           float(row[6]), float(row[7]), float(row[8]), float(row[9]), p])
+            except:
+                pass
+
+def find_tetra_from_all_comb(bipartite_matrix):
+
+    for three_simplex in tqdm(itertools.combinations(range(bipartite_matrix.shape[0]), 4)):
+        hyper_cont_cube = get_hyper_cont_cube(three_simplex[0], three_simplex[1], three_simplex[2], three_simplex[3], bipartite_matrix)
+        pval = pvalue_ABC_ABD_ACD_BCD(hyper_cont_cube)
+        if pval is not None:
+            if pval < 0.001:
+                with open('foundone.csv', 'w', newline='') as fout:
+                    writer = csv.writer(fout)
+                    writer.writerow([three_simplex[0], three_simplex[1], three_simplex[2], three_simplex[3], pval])
+            return
 
 if __name__ == '__main__':
-    #print(count_triangles_csv(r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_triangles_001_final_otu_pvalues.csv'))
+
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    find_tetra_from_all_comb(matrix1)
+
+    exit()
+
+    #find_4_cliques(r'extracted_2-simplices_001_final_otu.csv', '4cliquecsv')
     #exit()
-    g = read_pairwise_p_values(
-        r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_final_otu_pairwise_pvalue_phi.csv',
-        0.001)
-    print(find_clique_dist_2(g, 3))
-    exit()
-    print(extract_phi_for_triangles('extracted_2-simplices_001_final_otu.csv'))
-    exit()
+
+    ##print(count_triangles_csv(r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_triangles_001_final_otu_pvalues.csv'))
+    ##exit()
+    #g = read_pairwise_p_values(
+    #    r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_final_otu_pairwise_pvalue_phi.csv',
+    #    0.001)
+    #print(find_clique_dist_2(g, 3))
+    #exit()
+    #print(extract_phi_for_triangles('extracted_2-simplices_001_final_otu.csv'))
+    #exit()
 
     ######## First step : extract all links, their p-value and their phi-coefficient
     #### Load matrix
@@ -778,18 +981,18 @@ if __name__ == '__main__':
 
     #### to json for d3js :
 
-    g = read_pairwise_p_values(r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
-    label_list = []
-    with open('groupes_otu.csv', 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            try:
-                label_list.append(row[1])
-            except:
-                if row[0] != 'Bacteria':
-                    label_list.append(row[0])
-                else:
-                    label_list.append(label_list[-1])
+    #g = read_pairwise_p_values(r'C:\Users\Xavier\Desktop\Notes de cours\Maîtrise\Projet OTU\Betti_scm-master (1)\Betti_scm-master\windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
+    #label_list = []
+    #with open('groupes_otu.csv', 'r') as csvfile:
+    #    reader = csv.reader(csvfile)
+    #    for row in reader:
+    #        try:
+    #            label_list.append(row[1])
+    #        except:
+    #            if row[0] != 'Bacteria':
+    #                label_list.append(row[0])
+    #            else:
+    #                label_list.append(label_list[-1])
 
     #node_dictio_list = []
     #for noeud in g.nodes:
@@ -849,27 +1052,27 @@ if __name__ == '__main__':
     #    json.dump(json_diction, outfile)
 
     #exit()
-    link_dictio_list = []
-    node_set = set()
-    for lien in g.edges:
-        if g.get_edge_data(lien[0], lien[1])['phi'] > 0:
-            #link_dictio_list.append(
-            #    {"source": str(lien[0]), "value": g.get_edge_data(lien[0], lien[1])['phi'], "target": str(lien[1])})
-            link_dictio_list.append(
-                {"source": str(lien[0]), "value": 1, "target": str(lien[1])})
-            node_set.add(lien[0])
-            node_set.add(lien[1])
+    #link_dictio_list = []
+    #node_set = set()
+    #for lien in g.edges:
+    #    if g.get_edge_data(lien[0], lien[1])['phi'] > 0:
+    #        #link_dictio_list.append(
+    #        #    {"source": str(lien[0]), "value": g.get_edge_data(lien[0], lien[1])['phi'], "target": str(lien[1])})
+    #        link_dictio_list.append(
+    #            {"source": str(lien[0]), "value": 1, "target": str(lien[1])})
+    #        node_set.add(lien[0])
+    #        node_set.add(lien[1])
 
-    node_dictio_list = []
-    for noeud in list(node_set):
-        node_dictio_list.append({"id": str(noeud), "group": label_list[noeud]})
-        #node_dictio_list.append({"id": str(noeud)})
+    #node_dictio_list = []
+    #for noeud in list(node_set):
+    #    node_dictio_list.append({"id": str(noeud), "group": label_list[noeud]})
+    #    #node_dictio_list.append({"id": str(noeud)})
 
-    json_diction = {"nodes": node_dictio_list, "links": link_dictio_list}
-    with open('positive_interactions_otu_grouped.json', 'w') as outfile:
-        json.dump(json_diction, outfile)
+    #json_diction = {"nodes": node_dictio_list, "links": link_dictio_list}
+    #with open('positive_interactions_otu_grouped.json', 'w') as outfile:
+    #    json.dump(json_diction, outfile)
 
-    exit()
+    #exit()
 
 
     ######## Third step : Find all triangles in the previous network
@@ -880,7 +1083,7 @@ if __name__ == '__main__':
 
     #exit()
 
-    ######## Fourth step : Find all the p-value for the triangles under the hypothesis of homogeneity
+    ######## Fourth step : Find all the p-values for the triangles under the hypothesis of homogeneity
 
     #### Matrix is needed for the analysis
     #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
@@ -898,6 +1101,31 @@ if __name__ == '__main__':
 
     #exit()
 
+    ######### Sixth step : Rebuild a network from triangles only and find all the 4-cliques
+
+    #g = triangles_to_network(r'extracted_2-simplices_001_final_otu.csv')
+
+    #find_4_cliques(g, '4clique_final_otu')
+
+    #exit()
+
+    ######## Seventh step : Find all the p-values for the tetrahedrons under the hypothesis of homogeneity
+
+    ##### Matrix is needed for the analysis
+    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+
+    ##### Transform into occurrence matrix
+    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+
+    #print(tetrahedron_p_values_ABC_ABD_ACD_BCD('4clique_final_otu.csv', '4clique_p_values_final_otu', matrix1))
+
+    #exit()
+
+    ######## Eigth step : Extract all 3-simplices
+
+    #extract_3_simplex_from_csv('4clique_p_values_final_otu.csv', 0.001, 'extracted_3-simplices_001_final_otu')
+
+    #exit()
     ################# DONE ###################
 
 

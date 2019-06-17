@@ -8,10 +8,8 @@ def mle_2x2_ind(cont_tab):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of independence
     -------
-
     """
     #Computes the chisquare statistics and its p-value for a 2X2X2 contingency table under the total independence hypothesis
 
@@ -36,10 +34,8 @@ def mle_2x2x2_ind(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of independence
     -------
-
     """
     #Computes the chisquare statistics and its p-value for a 2X2X2 contingency table under the total independence hypothesis
 
@@ -69,11 +65,9 @@ def mle_2x2x2_AB_C(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of Variable 3 is independent of variable
     1 and 2 together.
     -------
-
     """
 
     m__k = np.sum(np.sum(cont_cube, axis=2), axis=1)
@@ -98,11 +92,9 @@ def mle_2x2x2_AC_B(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of Variable 2 is independent of variable
     1 and 3 together.
     -------
-
     """
     m_j_ = np.sum(np.sum(cont_cube, axis=1), axis=0)
     mi_k = np.sum(cont_cube, axis=2).T
@@ -128,11 +120,9 @@ def mle_2x2x2_BC_A(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of Variable 1 is independent of variable
     2 and 3 together.
     -------
-
     """
     mi__ = np.sum(np.sum(cont_cube, axis=0), axis=1)
     m_jk = np.sum(cont_cube, axis=1).T
@@ -159,11 +149,9 @@ def mle_2x2x2_AC_BC(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of Variable 1 and 2 are indepndent in
      each layer of variable 3.
     -------
-
     """
 
     m_jk = np.sum(cont_cube, axis=1).T
@@ -189,11 +177,9 @@ def mle_2x2x2_AB_BC(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of Variable 1 and 3 are indepndent in
      each layer of variable 2.
     -------
-
     """
 
     mij_ = np.sum(cont_cube, axis=0)
@@ -220,11 +206,9 @@ def mle_2x2x2_AB_AC(cont_cube):
     Parameters
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of Variable 2 and 3 are indepndent in
      each layer of variable 1.
     -------
-
     """
 
     mij_ = np.sum(cont_cube, axis=0)
@@ -248,10 +232,8 @@ def iterative_proportional_fitting_AB_AC_BC(cont_cube, delta=0.01):
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
     delta (float) : If the difference between the last estimates and the current estimates, we accept the estimates.
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of no three-factor interaction
     -------
-
     """
 
     xij_ = np.sum(cont_cube, axis=0)
@@ -298,10 +280,8 @@ def iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube, delta=0.000001):
     ----------
     cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
     delta (float) : If the difference between the last estimates and the current estimates, we accept the estimates.
-
     Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of no three-factor interaction
     -------
-
     """
 
     xij_ = np.sum(cont_cube, axis=0)
@@ -581,6 +561,68 @@ def iterative_proportional_fitting_ind(cont_cube, delta=0.01):
             break
 
     return mijk
+
+def ipf_ABC_ABD_ACD_BCD_no_zeros(hyper_cont_cube, delta=0.0001):
+    xijk_ = np.sum(hyper_cont_cube, axis=0)
+    xij_l = np.sum(hyper_cont_cube, axis=1)
+    xi_kl = np.sum(hyper_cont_cube, axis=3)
+    x_jkl = np.sum(hyper_cont_cube, axis=2)
+
+    # initialize the MLE at 1 for every cell
+    mijkl = np.ones((2, 2, 2, 2))
+
+    while True:
+        old_mijkl = np.copy(mijkl)
+        mijk_ = np.sum(mijkl, axis=0)
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        mijkl[l, k, i, j] = mijkl[l, k, i, j] * xijk_[k, i, j] / mijk_[k, i, j]
+
+        if not np.all(mijkl.flatten() != 0):
+            return None
+
+        mij_l = np.sum(mijkl, axis=1)
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        mijkl[l, k, i, j] = mijkl[l, k, i, j] * xij_l[l, i, j] / mij_l[l, i, j]
+
+        if not np.all(mijkl.flatten() != 0):
+            return None
+
+        mi_kl = np.sum(mijkl, axis=3)
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        mijkl[l, k, i, j] = mijkl[l, k, i, j] * xi_kl[l, k, i] / mi_kl[l, k, i]
+
+        if not np.all(mijkl.flatten() != 0):
+            return None
+
+        m_jkl = np.sum(mijkl, axis=2)
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        mijkl[l, k, i, j] = mijkl[l, k, i, j] * x_jkl[l, k, j] / m_jkl[l, k, j]
+
+
+        if np.all(mijkl.flatten() != 0 ):
+            if np.all(np.abs(mijkl.flatten() - old_mijkl.flatten()) < delta):
+                print('Converged!')
+                break
+        else :
+            return None
+
+    return mijkl
 
 if __name__ == '__main__':
 
