@@ -266,6 +266,43 @@ def save_pairwise_p_values_phi(bipartite_matrix, savename, bufferlimit=100000):
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
 
+def sampled_chisq_test(cont_table, expected_table, sampled_array):
+    test_stat = np.sum((cont_table - expected_table) ** 2 / expected_table)
+    cdf = np.sum((sampled_array < test_stat) * 1) / len(sampled_array)
+    pval = 1 - cdf
+    return pval
+
+
+def save_pairwise_sampled_chi_p_values_phi(bipartite_matrix, savename, bufferlimit=100000):
+
+    # create a CSV file
+    with open(savename+'.csv', 'w', newline='') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'p-value', 'phi-coefficient']])
+
+    buffer = []
+    count = 0
+    chisqlist = np.load('chisqlist2x2x2.npy')
+    for one_simplex in tqdm(itertools.combinations(range(bipartite_matrix.shape[0]), 2)):
+        contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
+        expected_table = mle_2x2_ind(contingency_table)
+        phi = phi_coefficient_table(contingency_table)
+
+        p = sampled_chisq_test(contingency_table, expected_table, chisqlist)
+        buffer.append([one_simplex[0], one_simplex[1], p, phi])
+        count += 1
+        if count == bufferlimit:
+            with open(savename+'.csv', 'a', newline='') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerows(buffer)
+                count = 0
+                # empty the buffer
+                buffer = []
+
+    with open(savename + '.csv', 'a', newline='') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
 def read_pairwise_p_values(filename, alpha=0.01):
 
     graph = nx.Graph()
@@ -925,9 +962,11 @@ if __name__ == '__main__':
 
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
-    find_tetra_from_all_comb(matrix1)
-
+    print(get_cont_table(0, 753, matrix1))
     exit()
+    #find_tetra_from_all_comb(matrix1)
+
+    #exit()
 
     #find_4_cliques(r'extracted_2-simplices_001_final_otu.csv', '4cliquecsv')
     #exit()
@@ -944,14 +983,14 @@ if __name__ == '__main__':
 
     ######## First step : extract all links, their p-value and their phi-coefficient
     #### Load matrix
-    #matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
 
     #### Transform into occurrence matrix
-    #matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
 
     #### Save all links and values to CSV file
-    #save_pairwise_p_values_phi(matrix1, 'windows_final_otu_pairwise_pvalue_phi')
-    #exit()
+    save_pairwise_sampled_chi_p_values_phi(matrix1, 'sampledchi_final_otu_pairwise_pvalue_phi')
+    exit()
 
     ######## Second step : Choose alpha and extract the network
     #g = read_pairwise_p_values('windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
