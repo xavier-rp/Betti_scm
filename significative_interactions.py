@@ -303,6 +303,34 @@ def save_pairwise_sampled_chi_p_values_phi(bipartite_matrix, savename, bufferlim
         writer = csv.writer(csvFile)
         writer.writerows(buffer)
 
+def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename):
+
+    # create a CSV file
+    with open(savename+'.csv', 'w', newline='') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'p-value', 'phi-coefficient']])
+
+        buffer = []
+        count = 0
+        for one_simplex in tqdm(itertools.combinations(range(bipartite_matrix.shape[0]), 2)):
+            contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
+            table_str = str(contingency_table[0, 0]) + '_' + str(contingency_table[0, 1]) + '_' + \
+                        str( contingency_table[1, 0]) + '_' + str(contingency_table[1, 1])
+
+            phi = phi_coefficient_table(contingency_table)
+
+            chi2, p = dictionary[table_str]
+            buffer.append([one_simplex[0], one_simplex[1], p, phi])
+            count += 1
+            writer = csv.writer(csvFile)
+            writer.writerows(buffer)
+            count = 0
+            # empty the buffer
+            buffer = []
+
+        writer = csv.writer(csvFile)
+        writer.writerows(buffer)
+
 def read_pairwise_p_values(filename, alpha=0.01):
 
     graph = nx.Graph()
@@ -959,6 +987,18 @@ def find_tetra_from_all_comb(bipartite_matrix):
             return
 
 if __name__ == '__main__':
+    # TODO : ADD NEW SAVE PAIRWISEPVALUE DICTIONARY,
+    # TODO SEND DICTIONARY
+    ####################### Exact p-values
+    #with open('exact_chisq_1deg_cc/complete_pval_dictionary_1deg.json') as jsonfile:
+    #    dictio = json.load(jsonfile)
+
+    #    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+
+    #    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+
+    #    save_pairwise_p_values_phi_dictionary(matrix1, dictio, 'exact_chi1_pvalues_final_otu')
+    #exit()
 
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
@@ -989,12 +1029,23 @@ if __name__ == '__main__':
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
 
     #### Save all links and values to CSV file
-    save_pairwise_sampled_chi_p_values_phi(matrix1, 'sampledchi_final_otu_pairwise_pvalue_phi')
-    exit()
+    #save_pairwise_p_values_phi(matrix1, 'windows_final_otu_pairwise_pvalue_phi')
+    #exit()
 
     ######## Second step : Choose alpha and extract the network
-    #g = read_pairwise_p_values('windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
-
+    # G = read_pairwise_p_values('windows_final_otu_pairwise_pvalue_phi.csv', 0.001)
+    # g = read_pairwise_p_values('final_otu_exact_pairwise_pvalues_phi.csv', 0.001)
+    # g = read_pairwise_p_values('exact_1-simplices_1deg.csv', 0.001)
+    # g = read_pairwise_p_values('exact_chi1_pvalues_final_otu.csv', 0.001)
+    # count = 0
+    # for edge in g.edges():
+    #    if not G.has_edge(edge[0], edge[1]):
+    #        print(edge)
+    #        count += 1
+    # print(count)
+    ##exit()
+    # print('Number of nodes : ', g.number_of_nodes())
+    # print('Number of links : ', g.number_of_edges())
     ##### Compute a few interesting quantities
     #print("Network density : ", nx.density(g))
     #print("Is connected : ", nx.is_connected(g))
@@ -1071,14 +1122,18 @@ if __name__ == '__main__':
     #            else:
     #                label_list.append(label_list[-1])
 
+    ############## D3JS NEGATIVE INTERACTIONS
     #link_dictio_list = []
     #node_set = set()
+    #count = 0
     #for lien in g.edges:
     #    if g.get_edge_data(lien[0], lien[1])['phi'] < 0 :
+    #        count += 1
     #        #link_dictio_list.append({"source": str(lien[0]), "value": g.get_edge_data(lien[0], lien[1])['phi'], "target": str(lien[1])})
     #        link_dictio_list.append({"source": str(lien[0]), "value": 1, "target": str(lien[1])})
     #        node_set.add(lien[0])
     #        node_set.add(lien[1])
+    #print('NUmber of negative interactions : ', count)
 
     #node_dictio_list = []
     #for noeud in list(node_set):
@@ -1120,6 +1175,7 @@ if __name__ == '__main__':
 
     #save_all_triangles(g, 'windows_triangles_001_final_otu')
 
+    # print(count_triangles_csv('exact_chi1_triangles_001_final_otu.csv'))
     #exit()
 
     ######## Fourth step : Find all the p-values for the triangles under the hypothesis of homogeneity
@@ -1136,6 +1192,7 @@ if __name__ == '__main__':
 
     #extract_2_simplex_from_csv('windows_triangles_001_final_otu_pvalues.csv', 0.001, 'extracted_2-simplices_001_final_otu')
 
+    # THIS ONE GIVES ALL TRIANGLES THAT CONVERGED REGARDLESS OF THEIR P-VALUE (NO ALPHA NEEDED)
     #extract_converged_triangles('windows_triangles_001_final_otu_pvalues.csv', 'converged_triangles')
 
     #exit()
