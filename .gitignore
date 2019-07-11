@@ -175,6 +175,9 @@ persistencetest/
 ### files ###
 *.json
 *.txt
+*.npy
+*.csv
+*.pickle
 pollinators_facet_list.txt
 crime_facet_list.txt
 finalOTU_facet_n15.txt
