@@ -111,26 +111,26 @@ if __name__ == '__main__':
             np.save(savepath, (matrix > 0) * 1)
 
     def get_cont_table(u_idx, v_idx, matrix):
-    #    Computes the 2X2 contingency table for the occurrence matrix
-    #    row_u_present = matrix[u_idx, :]
-    #    row_v_present = matrix[v_idx, :]
+        #Computes the 2X2 contingency table for the occurrence matrix
+        row_u_present = matrix[u_idx, :]
+        row_v_present = matrix[v_idx, :]
 
-    #    row_u_not_present = 1 - row_u_present
-    #    row_v_not_present = 1 - row_v_present
+        row_u_not_present = 1 - row_u_present
+        row_v_not_present = 1 - row_v_present
 
-    #    # u present, v present
-    #    table00 = np.dot(row_u_present, row_v_present)
+        # u present, v present
+        table00 = np.dot(row_u_present, row_v_present)
 
-    #    # u present, v NOT present
-    #    table01 = np.dot(row_u_present, row_v_not_present)
+        # u present, v NOT present
+        table01 = np.dot(row_u_present, row_v_not_present)
 
-    #    # u NOT present, v present
-    #    table10 = np.dot(row_u_not_present, row_v_present)
+        # u NOT present, v present
+        table10 = np.dot(row_u_not_present, row_v_present)
 
-    #    # u NOT present, v NOT present
-    #    table11 = np.dot(row_u_not_present, row_v_not_present)
+        # u NOT present, v NOT present
+        table11 = np.dot(row_u_not_present, row_v_not_present)
 
-    #    return np.array([[table00, table01], [table10, table11]])
+        return np.array([[table00, table01], [table10, table11]])
     ###### TO COUNT THE NUMBER OF DIFFERENT TABLES
     matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
     matrix1 = to_occurrence_matrix(matrix1, savepath=None)
