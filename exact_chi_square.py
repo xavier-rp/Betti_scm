@@ -235,6 +235,24 @@ if __name__ == '__main__':
 
     #    json.dump(pvaldictio, open("exact_chisq\pvaldictio_" + str(lastrange) + "_" + str(maxrange) + ".json", 'w'))
 
+    def pvalue_AB_AC_BC(cont_cube):
+        expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+        if expected is not None:
+            return chisq_test(cont_cube, expected)[1]
+        else:
+            return expected
+
+
+    def chisq_test(cont_tab, expected):
+        # Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
+        # via MLE or iterative proportional fitting.
+
+        df = 1
+        test_stat = np.sum((cont_tab - expected) ** 2 / expected)
+        p_val = chi2.sf(test_stat, df)
+
+        return test_stat, p_val
+
     with open('exact_chi1_cube_list.json') as json_file:
         table_set = json.load(json_file)
 
@@ -244,6 +262,7 @@ if __name__ == '__main__':
         # TODO iterate over all the tables
 
         # Max index used in range() :
+        no_mle_table_count = 0
         for it in range(len(table_set)):
             table_id = table_set[it]
             table = np.random.rand(2, 2, 2)
@@ -256,6 +275,13 @@ if __name__ == '__main__':
             table[1, 0, 1] = int(table_id_list[5])
             table[1, 1, 0] = int(table_id_list[6])
             table[1, 1, 1] = int(table_id_list[7])
+            pval = pvalue_AB_AC_BC(table)
+            if pval is not None:
+                if pval < 0.001:
+                    print(pvalue_AB_AC_BC(table))
+                    no_mle_table_count +=1
+            #N = np.sum(table)
+            #expected_original = iterative_proportional_fitting_AB_AC_BC_no_zeros(table)
 
             N = np.sum(table)
             expected_original = iterative_proportional_fitting_AB_AC_BC_no_zeros(table)
@@ -275,6 +301,8 @@ if __name__ == '__main__':
 
                 pvaldictio[table_id] = sampled_chisq_test(table, expected_original, chisqlist)
                 print('Time for one it : ', time.clock() - start)
+        print(no_mle_table_count)
+        exit()
 
         json.dump(pvaldictio, open("exact_chisq_1deg_cc\cube_pvaldictio.json", 'w'))
 

@@ -24,8 +24,8 @@ def multinomial_cont_table(nb_trials, nb_categories):
     probabilities = [1 / float(nb_categories)] * nb_categories
     return np.random.multinomial(nb_trials, probabilities, 1).reshape(2, 2)
 
-def multinomial_problist_cont_table(nb_trials, prob_list):
-    return np.random.multinomial(nb_trials, prob_list, 1).reshape(2, 2)
+def multinomial_problist_cont_table(nb_trials, prob_list, s=1):
+    return np.random.multinomial(nb_trials, prob_list, s).reshape(s, 2, 2)
 
 def multinomial_problist_cont_cube(nb_trials, prob_list):
     return np.random.multinomial(nb_trials, prob_list, 1).reshape(2, 2, 2)
@@ -70,6 +70,14 @@ def chisq_formula(cont_tab, expected):
 
     return test_stat
 
+def chisq_formula_vector(cont_tables, expected):
+    # Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
+    # via MLE or iterative proportional fitting.
+
+    return np.nan_to_num(np.sum(np.sum((cont_tables - expected) ** 2 / expected, axis = 1), axis = 1))
+
+
+
 def sampled_chisq_test(cont_table, expected_table, sampled_array):
     if float(0) in expected_table:
         test_stat = 0
@@ -111,26 +119,26 @@ if __name__ == '__main__':
             np.save(savepath, (matrix > 0) * 1)
 
     def get_cont_table(u_idx, v_idx, matrix):
-    #    Computes the 2X2 contingency table for the occurrence matrix
-    #    row_u_present = matrix[u_idx, :]
-    #    row_v_present = matrix[v_idx, :]
+        #Computes the 2X2 contingency table for the occurrence matrix
+        row_u_present = matrix[u_idx, :]
+        row_v_present = matrix[v_idx, :]
 
-    #    row_u_not_present = 1 - row_u_present
-    #    row_v_not_present = 1 - row_v_present
+        row_u_not_present = 1 - row_u_present
+        row_v_not_present = 1 - row_v_present
 
-    #    # u present, v present
-    #    table00 = np.dot(row_u_present, row_v_present)
+        # u present, v present
+        table00 = np.dot(row_u_present, row_v_present)
 
-    #    # u present, v NOT present
-    #    table01 = np.dot(row_u_present, row_v_not_present)
+        # u present, v NOT present
+        table01 = np.dot(row_u_present, row_v_not_present)
 
-    #    # u NOT present, v present
-    #    table10 = np.dot(row_u_not_present, row_v_present)
+        # u NOT present, v present
+        table10 = np.dot(row_u_not_present, row_v_present)
 
-    #    # u NOT present, v NOT present
-    #    table11 = np.dot(row_u_not_present, row_v_not_present)
+        # u NOT present, v NOT present
+        table11 = np.dot(row_u_not_present, row_v_not_present)
 
-    #    return np.array([[table00, table01], [table10, table11]])
+        return np.array([[table00, table01], [table10, table11]])
 
 
     ########### Count number of different cubes. NEED TO HAVE A CSV FILE
@@ -170,6 +178,14 @@ if __name__ == '__main__':
     #    table111 = np.sum(row_u_not*row_v_not*row_w_not)
 
     #    return np.array([[[table000, table010], [table100, table110]], [[table001, table011], [table101, table111]]], dtype=np.float64)
+
+
+    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+
+    matrix1 = to_occurrence_matrix(matrix1, savepath=None)
+
+    table_set = set()
+
     # with open('exact_triangles_001_final_otu.csv', 'r') as csvfile:
     #    reader = csv.reader(csvfile)
     #    next(reader)
@@ -257,8 +273,19 @@ if __name__ == '__main__':
     expected1 = mle_2x2_ind(sam)
     problist = mle_multinomial_from_table(expected1)
     chisqlist_prob = []
+    test = multinomial_problist_cont_table(38, problist, 10000)
+    expec = mle_2x2_ind_vector(test, 38)
+    chisq = np.nan_to_num(chisq_formula_vector(test, expec))
+    print(sampled_chisq_test(sam, expected1, chisq))
     start = time.clock()
-    print(problist)
+    test2 = multinomial_problist_cont_table(38, problist, 10000)
+    print(test[1], test2[1])
+    #test2 = np.random.multinomial(38, problist, 1000).reshape(1000, 2,2)
+    expec2 = mle_2x2_ind_vector(test2, 38)
+    chisq2 = np.nan_to_num(chisq_formula_vector(test2, expec2))
+    print(np.all(chisq == chisq2))
+    print(sampled_chisq_test(sam, expected1, chisq2))
+
     for it in range(1000000):
         sample = multinomial_problist_cont_table(38*1, problist)
         expected = mle_2x2_ind(sample)
