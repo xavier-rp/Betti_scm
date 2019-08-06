@@ -2,7 +2,8 @@ from base import *
 from metropolis_sampler import *
 import matplotlib.pyplot as plt
 from loglin_model import *
-from another_sign_int import *
+from significative_interactions import *
+import pickle as pkl
 
 def build_bipartite(samples):
 
@@ -99,9 +100,18 @@ def get_cont_table(u_idx, v_idx, matrix):
     return np.array([[table00, table01], [table10, table11]])
 
 if __name__ == '__main__':
+    # Use this to generate synthetic data with associated factorgraph object
+
+    with open('factorgraph.pkl', 'rb') as fg_file:
+        factorgraph = pickle.load(fg_file)
+
+    print(factorgraph.edges)
+
+    exit()
+
     nb_nodes = 2
 
-    G = nx.generators.random_graphs.erdos_renyi_graph(nb_nodes, 0, seed=0)
+    G = nx.generators.random_graphs.erdos_renyi_graph(nb_nodes, 1, seed=0)
     factorgraph = FactorGraph(G)
     state = np.random.randint(2, size=nb_nodes)
     energy_obj = Energy(state, factorgraph)
@@ -118,6 +128,12 @@ if __name__ == '__main__':
 
     bipartite = build_bipartite(sampler.results['sample'])
 
+    print(type(bipartite))
+
+    np.save('bipartite', bipartite)
+    with open('factorgraph.pkl', 'wb') as output:
+        pickle.dump(factorgraph, output, pickle.HIGHEST_PROTOCOL)
+
     table = get_cont_table(0, 1, bipartite)
     print(table)
 
@@ -128,7 +144,7 @@ if __name__ == '__main__':
     start = time.clock()
     sample = multinomial_problist_cont_table(N, problist, 1000000)
     expec = mle_2x2_ind_vector(sample, N)
-    chisq = np.nan_to_num(chisq_formula_vector(sample, expec))
+    chisq = chisq_formula_vector(sample, expec)
     print(pairwise_p_values_phi(bipartite))
     print(sampled_chisq_test(table, expected1, chisq))
     print('Time for one table: ', time.clock() - start)
