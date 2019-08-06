@@ -17,14 +17,31 @@ def mle_2x2_ind(cont_tab):
     col_sums = np.sum(cont_tab, axis=0)
     n = np.sum(cont_tab)
 
-    row_props = row_sums / n
-    col_props = col_sums / n
     expected = np.random.rand(2, 2)
     for i in range(2):
         for j in range(2):
-            expected[i, j] = row_props[i] * col_props[j] * n
+            expected[i, j] = row_sums[i] * col_sums[j] / n
 
     return expected
+
+
+def mle_2x2_ind_vector(cont_tables, n):
+    """
+    Computes the maximum likelihood estimates of a 2X2 table under the hypothesis of independence.
+    The formula for the MLEs are obtained via the method proposed in Bishop et Al. Discrete multivariate analysis
+    chapter 3. The formulas are summarized in Birch (1963) Maximum Likelihood in Three-Wat Contingency Tables
+    Parameters
+    ----------
+    cont_cube (2X2X2 numpy array) : Contingency cube of the three variables
+    Returns (2X2X2 numpy array) : Contingency cube with the expected values under the hypothesis of independence
+    -------
+    """
+    # Computes the chisquare statistics and its p-value for a 2X2X2 contingency table under the total independence hypothesis
+
+    row_sums = np.sum(cont_tables, axis=1, keepdims=True)
+    col_sums = np.sum(cont_tables, axis=2, keepdims=True)
+
+    return np.matmul(col_sums, row_sums) / n
 
 def mle_2x2x2_ind(cont_cube):
     """
