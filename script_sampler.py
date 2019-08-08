@@ -10,7 +10,6 @@ def build_bipartite(samples):
     """
     Builds a bipartite matrix from the generated samples. Each column represents a
     random vector, while each row represents a random variable node in the graph
-
     :param samples: (list of array)
     :return: array in the form of a bipartite matrix
     """
@@ -100,52 +99,63 @@ def get_cont_table(u_idx, v_idx, matrix):
     return np.array([[table00, table01], [table10, table11]])
 
 if __name__ == '__main__':
+    #G = nx.Graph()
+    #G.add_edge(1, 2, weight=7, color='red')
+    #G = nx.read_edgelist("test.edgelist")
+    #nx.write_edgelist(G, 'test.edgelist', data=True)
+    #nx.write_edgelist(G, 'test.edgelist', data=['color'])
+    #nx.write_edgelist(G, 'test.edgelist', data=['color', 'weight'])
     # Use this to generate synthetic data with associated factorgraph object
+    #print(G.nodes)
+    #with open('factorgraph.pkl', 'rb') as fg_file:
+    #    factorgraph = pickle.load(fg_file)
 
-    with open('factorgraph.pkl', 'rb') as fg_file:
-        factorgraph = pickle.load(fg_file)
+    #print(factorgraph.edges)
 
-    print(factorgraph.edges)
-
-    exit()
+    #exit()
 
     nb_nodes = 2
 
     G = nx.generators.random_graphs.erdos_renyi_graph(nb_nodes, 1, seed=0)
     factorgraph = FactorGraph(G)
+
+    print('nb edges : ', len(factorgraph.edges))
+
+    nx.draw_networkx(G)
+    plt.show()
+
     state = np.random.randint(2, size=nb_nodes)
     energy_obj = Energy(state, factorgraph)
     proposer = BitFlipProposer(factorgraph, energy_obj, state)
-    sampler = Sampler(proposer, initial_burn=500, sample_burn=10)
-    sampler.sample(50)
+    sampler = Sampler(proposer, temperature=1, initial_burn=500, sample_burn=500)
+    sampler.sample(100)
 
-    #energy = sampler.results['all_energies']
+    energy = sampler.results['all_energies']
     #print(sampler.results['nb_success'])
     #print(sampler.results['nb_rejected'])
-    #print(sampler.results['sample'])
-    #plt.plot(energy)
-    #plt.show()
+    print(sampler.results['sample'])
+    plt.plot(energy)
+    plt.show()
 
     bipartite = build_bipartite(sampler.results['sample'])
 
-    print(type(bipartite))
 
     np.save('bipartite', bipartite)
     with open('factorgraph.pkl', 'wb') as output:
         pickle.dump(factorgraph, output, pickle.HIGHEST_PROTOCOL)
 
-    table = get_cont_table(0, 1, bipartite)
-    print(table)
+    #table = get_cont_table(0, 1, bipartite)
+    #print(table)
 
-    N = np.sum(table)
-    expected1 = mle_2x2_ind(table)
-    print(expected1)
-    problist = mle_multinomial_from_table(expected1)
-    start = time.clock()
-    sample = multinomial_problist_cont_table(N, problist, 1000000)
-    expec = mle_2x2_ind_vector(sample, N)
-    chisq = chisq_formula_vector(sample, expec)
-    print(pairwise_p_values_phi(bipartite))
-    print(sampled_chisq_test(table, expected1, chisq))
-    print('Time for one table: ', time.clock() - start)
+    #N = np.sum(table)
+    #expected1 = mle_2x2_ind(table)
+    #print(expected1)
+    #problist = mle_multinomial_from_table(expected1)
+    #start = time.clock()
+    #sample = multinomial_problist_cont_table(N, problist, 1000000)
+    #expec = mle_2x2_ind_vector(sample, N)
+    #chisq = chisq_formula_vector(sample, expec)
+    #print(pairwise_p_values_phi(bipartite))
+    #print(sampled_chisq_test(table, expected1, chisq))
+    #print('Time for one table: ', time.clock() - start)
 
