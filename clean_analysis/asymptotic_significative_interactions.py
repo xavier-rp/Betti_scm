@@ -108,10 +108,9 @@ def get_cont_cube(u_idx, v_idx, w_idx, matrix):
 
 
 def phi_coefficient_table(cont_tab):
-   row_sums = np.sum(cont_tab, axis=1)
-   col_sums = np.sum(cont_tab, axis=0)
-
-   return (cont_tab[0,0]*cont_tab[1,1] - cont_tab[1,0]*cont_tab[0,1])/np.sqrt(row_sums[0]*row_sums[1]*col_sums[0]*col_sums[1])
+    row_sums = np.sum(cont_tab, axis=1)
+    col_sums = np.sum(cont_tab, axis=0)
+    return (cont_tab[0,0]*cont_tab[1,1] - cont_tab[1,0]*cont_tab[0,1])/np.sqrt(row_sums[0]*row_sums[1]*col_sums[0]*col_sums[1])
 
 def chisq_test(cont_tab, expected, df=1):
     #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
@@ -135,12 +134,14 @@ def read_pairwise_p_values(filename, alpha=0.01):
 
         for row in tqdm(reader):
 
-            if row[-1] != 'nan':
-                p = float(row[-2])
+            try:
+                p = float(row[-1])
                 if p < alpha:
                     # Reject H_0 in which we suppose that u and v are independent
                     # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
-                    graph.add_edge(int(row[0]), int(row[1]), p_value=row[2], phi=float(row[-1]))
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-2]), p_value=p)
+            except:
+                pass
 
     return graph
 
@@ -350,10 +351,9 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
     # create a CSV file
     with open(savename+'.csv', 'w', newline='') as csvFile:
         writer = csv.writer(csvFile)
-        writer.writerows([['node index 1', 'node index 2', 'p-value', 'phi-coefficient']])
+        writer.writerows([['node index 1', 'node index 2', 'phi-coefficient', 'p-value']])
 
         buffer = []
-        count = 0
         for one_simplex in tqdm(itertools.combinations(range(bipartite_matrix.shape[0]), 2)):
             contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
             table_str = str(contingency_table[0, 0]) + '_' + str(contingency_table[0, 1]) + '_' + \
@@ -362,7 +362,7 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
             phi = phi_coefficient_table(contingency_table)
 
             chi2, p = dictionary[table_str]
-            buffer.append([one_simplex[0], one_simplex[1], p, phi])
+            buffer.append([one_simplex[0], one_simplex[1], phi, p])
             writer = csv.writer(csvFile)
             writer.writerows(buffer)
 
@@ -413,7 +413,12 @@ def pvalues_for_cubes(file_name):
 
             expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(table)
 
-            pvaldictio[table_id] = chisq_test(table, expected, df=1)
+            if expected is not None:
+
+                pvaldictio[table_id] = chisq_test(table, expected, df=1)
+
+            else :
+                pvaldictio[table_id] = str(expected)
 
         json.dump(pvaldictio, open(data_name + "_asymptotic_cube_pval_dictio.json", 'w'))
 
@@ -434,17 +439,14 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
                 int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
                 int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
 
-            chi2, p = dictionary[table_str]
-            buffer.append([two_simplex[0], two_simplex[1], two_simplex[2], p])
+            try :
+                chi2, p = dictionary[table_str]
+            except:
+                p = dictionary[table_str]
 
-            writer = csv.writer(csvFile)
-            writer.writerows(buffer)
+            writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
-            # empty the buffer
-            buffer = []
-
-        writer = csv.writer(csvFile)
-        writer.writerows(buffer)
+        writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
 def two_simplex_from_csv(csvfilename, alpha, savename):
 
@@ -465,11 +467,25 @@ def two_simplex_from_csv(csvfilename, alpha, savename):
 
 if __name__ == '__main__':
 
-    data_name = 'something'
-    alpha = 0.01
+    dirName = 'vOTUS'
+    data_name = 'vOTUS'
 
-    matrix1 = np.load('QC_Temp_precip-biadjacency.npy')
-    matrix1 = matrix1.astype(int)
+    alpha = 0.01
+    matrix1 = np.load('vOTUS_occ.npy').T
+    matrix1 = matrix1.astype(np.int64)
+
+    # Create target Directory if don't exist
+    if not os.path.exists(dirName):
+        os.mkdir(dirName)
+        print("Directory ", dirName, " Created ")
+    else:
+        print("Directory ", dirName, " already exists")
+
+    data_name = os.path.join(dirName, data_name)
+
+    #print(data_name)
+    #exit()
+
 
     ######## First step : Extract all the unique tables
 
@@ -487,8 +503,8 @@ if __name__ == '__main__':
     ######## Third step : Find table for all links and their associated pvalue
 
     print('Step 3 : Find table for all links and their associated pvalue')
-
-    with open(data_name + '_asymptotic_pvaldictio.json') as jsonfile:
+    print(data_name + '_test')
+    with open(data_name + '_asymptotic_pval_dictio.json') as jsonfile:
         dictio = json.load(jsonfile)
 
         save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_asymptotic_pvalues')
@@ -525,8 +541,9 @@ if __name__ == '__main__':
 
         save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_asymptotic_cube_pvalues')
 
-    two_simplex_from_csv(data_name + '_asymptotic_cube_pvalues.csv', alpha, data_name + '_asymptotic_two_simplices_pvalues')
+    two_simplex_from_csv(data_name + '_asymptotic_cube_pvalues.csv', alpha, data_name + '_asymptotic_two_simplices_' + str(alpha)[2:])
 
+    exit()
 
 
     ############## OLD WAY : FIND EMPTY TRIANGLES AND TEST THEM : ###################
@@ -556,36 +573,36 @@ if __name__ == '__main__':
 
     #### to json for d3js :
 
-    g = read_pairwise_p_values('asymptotic/asymptotic_pvalues_birds.csv', 0.001)
+    #g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
-    node_dictio_list = []
-    for noeud in g.nodes:
-        node_dictio_list.append({"id": str(noeud), "group": 1})
-        # node_dictio_list.append({"id":str(noeud)})
+    #node_dictio_list = []
+    #for noeud in g.nodes:
+    #    node_dictio_list.append({"id": str(noeud), "group": 1})
+    #    # node_dictio_list.append({"id":str(noeud)})
 
-    link_dictio_list = []
-    for lien in g.edges:
-        link_dictio_list.append({"source": str(lien[0]), "target": str(lien[1]), "value": 1})
+    #link_dictio_list = []
+    #for lien in g.edges:
+    #    link_dictio_list.append({"source": str(lien[0]), "target": str(lien[1]), "value": 1})
 
-    triplex_dictio_list = []
+    #triplex_dictio_list = []
 
-    with open("TEST_TRIPLETS_ASYMPT.csv", 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in reader:
-            print(row)
-            try:
-                pval = float(row[-1])
-                if pval < 0.001:
-                    triplex_dictio_list.append({"nodes": [str(row[0]), str(row[1]), str(row[2])]})
-            except:
-                pass
+    #with open("TEST_TRIPLETS_ASYMPT.csv", 'r') as csvfile:
+    #    reader = csv.reader(csvfile)
+    #    next(reader)
+    #    for row in reader:
+    #        print(row)
+    #        try:
+    #            pval = float(row[-1])
+    #            if pval < 0.001:
+    #                triplex_dictio_list.append({"nodes": [str(row[0]), str(row[1]), str(row[2])]})
+    #        except:
+    #            pass
 
 
-    json_diction = {"nodes": node_dictio_list, "links": link_dictio_list, "triplex": triplex_dictio_list}
-    with open('d3js_simplicialcomplex_asympt_001.json', 'w') as outfile:
-        json.dump(json_diction, outfile)
-    exit()
+    #json_diction = {"nodes": node_dictio_list, "links": link_dictio_list, "triplex": triplex_dictio_list}
+    #with open('d3js_simplicialcomplex_asympt_001.json', 'w') as outfile:
+    #    json.dump(json_diction, outfile)
+    #exit()
     # Extract nodes with groups :
     ######groupe_set = set()
     ######with open('groupes_otu.csv', 'r') as csvfile:

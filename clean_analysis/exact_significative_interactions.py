@@ -178,12 +178,15 @@ def read_pairwise_p_values(filename, alpha=0.01):
 
         for row in tqdm(reader):
 
-            if row[-1] != 'nan':
-                p = float(row[-2])
+            try:
+                p = float(row[-1])
                 if p < alpha:
                     # Reject H_0 in which we suppose that u and v are independent
                     # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
-                    graph.add_edge(int(row[0]), int(row[1]), p_value=row[2], phi=float(row[-1]))
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-2]), p_value=p)
+            except:
+                pass
+
 
     return graph
 
@@ -360,7 +363,7 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
     # create a CSV file
     with open(savename+'.csv', 'w', newline='') as csvFile:
         writer = csv.writer(csvFile)
-        writer.writerows([['node index 1', 'node index 2', 'p-value', 'phi-coefficient']])
+        writer.writerows([['node index 1', 'node index 2','phi-coefficient', 'p-value']])
 
         buffer = []
         count = 0
@@ -372,7 +375,7 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
             phi = phi_coefficient_table(contingency_table)
 
             chi2, p = dictionary[table_str]
-            buffer.append([one_simplex[0], one_simplex[1], p, phi])
+            buffer.append([one_simplex[0], one_simplex[1], phi, p])
             writer = csv.writer(csvFile)
             writer.writerows(buffer)
 
@@ -450,17 +453,14 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
                 int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
                 int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
 
-            chi2, p = dictionary[table_str]
-            buffer.append([two_simplex[0], two_simplex[1], two_simplex[2], p])
+            try :
+                chi2, p = dictionary[table_str]
+            except:
+                p = dictionary[table_str]
 
-            writer = csv.writer(csvFile)
-            writer.writerows(buffer)
+            writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
-            # empty the buffer
-            buffer = []
-
-        writer = csv.writer(csvFile)
-        writer.writerows(buffer)
+        writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
 def two_simplex_from_csv(csvfilename, alpha, savename):
 
@@ -482,12 +482,23 @@ def two_simplex_from_csv(csvfilename, alpha, savename):
 
 if __name__ == '__main__':
 
-    data_name = 'something'
+    dirName = 'bird'
+    data_name = 'bird'
+
     alpha = 0.01
     nb_samples = 1000000
-
     matrix1 = np.load('QC_Temp_precip-biadjacency.npy')
-    matrix1 = matrix1.astype(int)
+    matrix1 = matrix1.astype(np.int64)
+
+    # Create target Directory if don't exist
+    if not os.path.exists(dirName):
+        os.mkdir(dirName)
+        print("Directory ", dirName, " Created ")
+    else:
+        print("Directory ", dirName, " already exists")
+
+    data_name = os.path.join(dirName, data_name)
+
 
     ######## First step : Extract all the unique tables
 
@@ -506,7 +517,7 @@ if __name__ == '__main__':
 
     print('Step 3 : Find table for all links and their associated pvalue')
 
-    with open(data_name + '_exact_pvaldictio.json') as jsonfile:
+    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
         dictio = json.load(jsonfile)
 
         save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
@@ -543,7 +554,9 @@ if __name__ == '__main__':
 
         save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_exact_cube_pvalues')
 
-    two_simplex_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_two_simplices_pvalues')
+    two_simplex_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_two_simplices_'  + str(alpha)[2:])
+
+    exit()
 
     ################# DONE ###################
 
@@ -551,7 +564,7 @@ if __name__ == '__main__':
 
     #### to json for d3js :
 
-    g = read_pairwise_p_values('exact_chi1_pvalues_birds.csv', 0.01)
+    #g = read_pairwise_p_values('exact_chi1_pvalues_birds.csv', 0.01)
     #label_list = []
     #with open('groupes_otu.csv', 'r') as csvfile:
     #   reader = csv.reader(csvfile)
@@ -564,48 +577,48 @@ if __name__ == '__main__':
     #           else:
     #               label_list.append(label_list[-1])
 
-    node_dictio_list = []
-    for noeud in g.nodes:
-       node_dictio_list.append({"id": str(noeud), "group": 2})
-       #node_dictio_list.append({"id":str(noeud)})
+    #node_dictio_list = []
+    #for noeud in g.nodes:
+    #   node_dictio_list.append({"id": str(noeud), "group": 2})
+    #   #node_dictio_list.append({"id":str(noeud)})
 
-    link_dictio_list = []
-    for lien in g.edges:
-       link_dictio_list.append({"source": str(lien[0]), "target": str(lien[1]), "value": 1})
+    #link_dictio_list = []
+    #for lien in g.edges:
+    #   link_dictio_list.append({"source": str(lien[0]), "target": str(lien[1]), "value": 1})
 
-    triplex_dictio_list = []
+    #triplex_dictio_list = []
 
-    with open('all_cube_pval_dictionary') as jsonfile:
-        dictio = json.load(jsonfile)
+    #with open('all_cube_pval_dictionary') as jsonfile:
+    #    dictio = json.load(jsonfile)
 
-    matrix1 = np.loadtxt('incidenceMatrix.txt').T
-    matrix1 = matrix1.astype(int)
-    table_set = set()
-    for two_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 3)):
+    #matrix1 = np.loadtxt('incidenceMatrix.txt').T
+    #matrix1 = matrix1.astype(int)
+    #table_set = set()
+    #for two_simplex in tqdm(itertools.combinations(range(matrix1.shape[0]), 3)):
 
-        computed_cont_table = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], matrix1)
-        table_str = str(int(computed_cont_table[0, 0, 0])) + '_' + str(
-            int(computed_cont_table[0, 0, 1])) + '_' + str(int(computed_cont_table[0, 1, 0])) + '_' + str(
-            int(computed_cont_table[0, 1, 1])) + '_' + str(int(computed_cont_table[1, 0, 0])) + '_' + str(
-            int(computed_cont_table[1, 0, 1])) + '_' + str(int(computed_cont_table[1, 1, 0])) + '_' + str(
-            int(computed_cont_table[1, 1, 1]))
-        if table_str not in table_set:
-            table_set.add(table_str)
-        try:
-            if float(dictio[table_str][1]) < 0.01:
-                print(two_simplex[0], two_simplex[1], two_simplex[2], dictio[table_str][1])
-                triplex_dictio_list.append({"nodes": [str(two_simplex[0]), str(two_simplex[1]), str(two_simplex[2])]})
-                link_dictio_list.append({"source": str(two_simplex[0]), "target": str(two_simplex[1]), "value": 1})
-                link_dictio_list.append({"source": str(two_simplex[1]), "target": str(two_simplex[2]), "value": 1})
-                link_dictio_list.append({"source": str(two_simplex[0]), "target": str(two_simplex[2]), "value": 1})
-        except:
-            pass
+    #    computed_cont_table = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], matrix1)
+    #    table_str = str(int(computed_cont_table[0, 0, 0])) + '_' + str(
+    #        int(computed_cont_table[0, 0, 1])) + '_' + str(int(computed_cont_table[0, 1, 0])) + '_' + str(
+    #        int(computed_cont_table[0, 1, 1])) + '_' + str(int(computed_cont_table[1, 0, 0])) + '_' + str(
+    #        int(computed_cont_table[1, 0, 1])) + '_' + str(int(computed_cont_table[1, 1, 0])) + '_' + str(
+    #        int(computed_cont_table[1, 1, 1]))
+    #    if table_str not in table_set:
+    #        table_set.add(table_str)
+    #    try:
+    #        if float(dictio[table_str][1]) < 0.01:
+    #            print(two_simplex[0], two_simplex[1], two_simplex[2], dictio[table_str][1])
+    #            triplex_dictio_list.append({"nodes": [str(two_simplex[0]), str(two_simplex[1]), str(two_simplex[2])]})
+    #            link_dictio_list.append({"source": str(two_simplex[0]), "target": str(two_simplex[1]), "value": 1})
+    #            link_dictio_list.append({"source": str(two_simplex[1]), "target": str(two_simplex[2]), "value": 1})
+    #            link_dictio_list.append({"source": str(two_simplex[0]), "target": str(two_simplex[2]), "value": 1})
+    #    except:
+    #        pass
 
 
-    json_diction = {"nodes": node_dictio_list, "links" : link_dictio_list, "triplex" : triplex_dictio_list}
-    with open('d3js_simplicialcomplex_01.json', 'w') as outfile:
-       json.dump(json_diction, outfile)
-    exit()
+    #json_diction = {"nodes": node_dictio_list, "links" : link_dictio_list, "triplex" : triplex_dictio_list}
+    #with open('d3js_simplicialcomplex_01.json', 'w') as outfile:
+    #   json.dump(json_diction, outfile)
+    #exit()
     # Extract nodes with groups :
     ######groupe_set = set()
     ######with open('groupes_otu.csv', 'r') as csvfile:
