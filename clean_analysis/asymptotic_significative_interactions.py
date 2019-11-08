@@ -471,7 +471,7 @@ if __name__ == '__main__':
     data_name = 'vOTUS'
 
     alpha = 0.01
-    matrix1 = np.load('vOTUS_occ.npy').T
+    matrix1 = np.load('QC_Temp_precip-biadjacency.npy')
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist

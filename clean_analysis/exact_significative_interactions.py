@@ -366,7 +366,6 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
         writer.writerows([['node index 1', 'node index 2','phi-coefficient', 'p-value']])
 
         buffer = []
-        count = 0
         for one_simplex in tqdm(itertools.combinations(range(bipartite_matrix.shape[0]), 2)):
             contingency_table = get_cont_table(one_simplex[0], one_simplex[1], bipartite_matrix)
             table_str = str(contingency_table[0, 0]) + '_' + str(contingency_table[0, 1]) + '_' + \
@@ -429,7 +428,11 @@ def pvalues_for_cubes(file_name, nb_sample):
 
             if expected_original is not None:
                 problist = mle_multinomial_from_table(expected_original)
-                sample = multinomial_problist_cont_cube(N, problist, nb_samples)
+                sample = multinomial_problist_cont_cube(N, problist, nb_sample)
+                expec = np.tile(expected_original, (nb_samples, 1, 1)).reshape(nb_sample, 2, 2, 2)
+                chisq = chisq_formula_vector_for_cubes(sample, expec)
+                s, p = sampled_chisq_test(table, expected_original, chisq)
+                pvaldictio[table_id] = p
 
             else:
                 pvaldictio[table_id] = 'None'
@@ -460,7 +463,6 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
 
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
-        writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
 def two_simplex_from_csv(csvfilename, alpha, savename):
 
@@ -478,18 +480,64 @@ def two_simplex_from_csv(csvfilename, alpha, savename):
             except:
                 pass
 
+def build_facet_list(matrix, two_simplices_file, one_simplices_file, alpha):
+    #open('facet_list.txt', 'a').close()
+
+    with open('facet_list.txt', 'w') as facetlist:
+
+        nodelist = np.arange(0, matrix.shape[0])
+
+        for node in nodelist:
+            facetlist.write(str(node) +'\n')
+
+        with open(one_simplices_file, 'r') as csvfile:
+
+            reader = csv.reader(csvfile)
+            next(reader)
+
+            for row in tqdm(reader):
+
+                try:
+                    p = float(row[-1])
+                    if p < alpha:
+                        # Reject H_0 in which we suppose that u and v are independent
+                        # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                        facetlist.write(str(row[0]) + ' ' + str(row[1]) + '\n')
+                except:
+                    pass
+
+        with open(two_simplices_file, 'r') as csvfile:
+
+            reader = csv.reader(csvfile)
+            next(reader)
+
+            for row in tqdm(reader):
+
+                try:
+                    p = float(row[-1])
+                    if p < alpha:
+                        # Reject H_0 in which we suppose that u and v are independent
+                        # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                        facetlist.write(str(row[0]) + ' ' + str(row[1]) + ' ' + str(row[2]) + '\n')
+                except:
+                    pass
+    return
+
+
 
 
 if __name__ == '__main__':
 
-    dirName = 'bird'
-    data_name = 'bird'
+    dirName = 'vOTUS'
+    data_name = 'vOTUS'
 
     alpha = 0.01
     nb_samples = 1000000
-    matrix1 = np.load('QC_Temp_precip-biadjacency.npy')
+    matrix1 = np.load('vOTUS_occ.npy').T
     matrix1 = matrix1.astype(np.int64)
 
+    build_facet_list(matrix1, r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_cube_pvalues.csv', r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_pvalues.csv', 0.01 )
+    exit()
     # Create target Directory if don't exist
     if not os.path.exists(dirName):
         os.mkdir(dirName)
@@ -502,50 +550,50 @@ if __name__ == '__main__':
 
     ######## First step : Extract all the unique tables
 
-    print('Step 1 : Extract all the unique tables')
+    #print('Step 1 : Extract all the unique tables')
 
-    # Finds all unique tables
-    find_unique_tables(matrix1, data_name)
+    ## Finds all unique tables
+    #find_unique_tables(matrix1, data_name)
 
-    ######## Second step : Extract pvalues for all tables with an exact Chi3 distribution
+    ######### Second step : Extract pvalues for all tables with an exact Chi3 distribution
 
-    print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
+    #print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
 
-    pvalues_for_tables(data_name, nb_samples)
+    #pvalues_for_tables(data_name, nb_samples)
 
-    ######## Third step : Find table for all links and their associated pvalue
+    ######### Third step : Find table for all links and their associated pvalue
 
-    print('Step 3 : Find table for all links and their associated pvalue')
+    #print('Step 3 : Find table for all links and their associated pvalue')
 
-    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
-        dictio = json.load(jsonfile)
+    #with open(data_name + '_exact_pval_dictio.json') as jsonfile:
+    #    dictio = json.load(jsonfile)
 
-        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
+    #    save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
 
 
-    ######## Fourth step : Choose alpha and extract the network
+    ######### Fourth step : Choose alpha and extract the network
 
-    print('Step 4 : Generate network and extract edge_list for a given alpha')
+    #print('Step 4 : Generate network and extract edge_list for a given alpha')
 
-    g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
-    nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
+    #g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
+    #nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
 
-    print('Number of nodes : ', g.number_of_nodes())
-    print('Number of links : ', g.number_of_edges())
+    #print('Number of nodes : ', g.number_of_nodes())
+    #print('Number of links : ', g.number_of_edges())
 
-    ######## Fifth step : Extract all the unique cubes
+    ######### Fifth step : Extract all the unique cubes
 
-    print('Step 5 : Extract all the unique cubes')
+    #print('Step 5 : Extract all the unique cubes')
 
-    find_unique_cubes(matrix1, data_name)
+    #find_unique_cubes(matrix1, data_name)
 
     ######## Sixth step : Extract pvalues for all cubes with an exact CHI 3 distribution
 
-    print('Step 6: Extract pvalues for all tables with an exact CHI 3 distribution')
+    #print('Step 6: Extract pvalues for all tables with an exact CHI 3 distribution')
 
-    pvalues_for_cubes(data_name, nb_samples)
+    #pvalues_for_cubes(data_name, nb_samples)
 
-    ######## Seventh step : Find cube for all triplets and their associated pvalue
+    ######### Seventh step : Find cube for all triplets and their associated pvalue
 
     print('Step 7 : Find cube for all triplets and their associated pvalue')
 
