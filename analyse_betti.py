@@ -5,7 +5,6 @@ import gudhi
 import numpy as np
 import scipy as sp
 import scipy.misc
-import simplicial
 import json
 import pickle
 import seaborn as sns
@@ -355,9 +354,53 @@ def highest_possible_betti(facetlist):
 
     return betti
 
+
+def build_simplex_tree(facetlist, highest_dim):
+    st = gudhi.SimplexTree()
+    for facet in facetlist:
+
+        # This condition and the loop it contains break a facet in all its n choose k faces. This is more
+        # memory efficient than inserting a big facet because of the way GUDHI's SimplexTree works. The
+        # dimension of the faces has to be at least one unit bigger than the skeleton we use.
+        if len(facet) > highest_dim + 1:
+            for face in itertools.combinations(facet, highest_dim + 1):
+                st.insert(face)
+        else:
+            st.insert(facet)
+
+    return st
+
+def compute_nb_simplices(simplex_tree, dim, andlower=True):
+
+    i = 0
+    if andlower:
+        while dim - i >= 0:
+            count = 0
+
+            for simplex in simplex_tree.get_skeleton(dim - i):
+                if len(simplex[0]) == (dim - i) +1:
+                    count += 1
+            print('Number of ' + str(dim-i) + '-simplices : ', count)
+
+            i += 1
+    else:
+        count = 0
+
+        for simplex in simplex_tree.get_skeleton(dim):
+            if len(simplex[0] == dim + 1):
+                count += 1
+        print('Number of ' + str(dim - i) + '-simplices : ', count)
+
+    return
+
+    # print(len(st.get_skeleton(1)))
+
+
 if __name__ == '__main__':
 
-    path = '/home/xavier/Documents/Projet/Betti_scm/FinalOTU/BarCode/site_as_facets_sumfilt/site_as_facets_facetpruned97.txt'
+
+
+    path = r'D:\Users\Xavier\Documents\Analysis_master\Analysis\utilities\vOTUS_prubntest.txt'
     facetlist = []
     with open(path, 'r') as file:
         for l in file:
@@ -369,6 +412,14 @@ if __name__ == '__main__':
         somme += len(elem)
     print(somme/len(facetlist))
     print(min(maxlist), max(maxlist))
+
+    st = build_simplex_tree(facetlist, 2)
+    compute_nb_simplices(st, 2)
+
+    exit()
+
+    print(compute_betti(facetlist, 3))
+
     exit()
 
     #hi = highest_possible_betti(facetlist)
