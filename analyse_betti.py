@@ -387,10 +387,10 @@ def compute_nb_simplices(simplex_tree, dim, andlower=True):
         count = 0
 
         for simplex in simplex_tree.get_skeleton(dim):
-            if len(simplex[0] == dim + 1):
+            if len(simplex[0]) == dim + 1:
                 count += 1
         print('Number of ' + str(dim - i) + '-simplices : ', count)
-
+        return count
     return
 
     # print(len(st.get_skeleton(1)))
