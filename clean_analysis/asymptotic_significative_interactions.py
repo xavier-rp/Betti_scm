@@ -237,7 +237,7 @@ def save_triplets_p_values(bipartite_matrix, savename):
             writer = csv.writer(csvFile)
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p_value])
 
-def extract_2_simplex_from_csv(csvfilename, alpha, savename):
+def extract_2_simplex_from_csv_old(csvfilename, alpha, savename):
 
     with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
         reader = csv.reader(csvfile)
@@ -446,8 +446,6 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
 
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
-        writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
-
 def two_simplex_from_csv(csvfilename, alpha, savename):
 
     with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
@@ -464,9 +462,53 @@ def two_simplex_from_csv(csvfilename, alpha, savename):
             except:
                 pass
 
+def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix, bufferlimit=100000):
+
+    buffer = []
+
+    with open(csvfile, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+
+            cont_cube = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
+
+            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
+                int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
+                int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
+                int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
+
+            try :
+
+                chi2, p = dictionary[table_str]
+
+            except:
+
+                p = dictionary[table_str]
+
+            writer.writerow([row[0], row[1], row[2], p])
+
+def extract_2_simplex_from_csv(csvfilename, alpha, savename):
+
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            try :
+                p = float(row[-1])
+                if p < alpha:
+                    writer = csv.writer(fout)
+                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), p])
+            except:
+                pass
+
 
 if __name__ == '__main__':
-
+    old_method = False
     dirName = 'vOTUS'
     data_name = 'vOTUS'
 
@@ -528,42 +570,55 @@ if __name__ == '__main__':
 
     ######## Sixth step : Extract pvalues for all cubes with an asymptotic distribution
 
-    print('Step 6: Extract pvalues for all tables with an asymptotic distribution')
+    print('Step 6: Extract pvalues for all cubes with an asymptotic distribution')
 
     pvalues_for_cubes(data_name)
 
     ######## Seventh step : Find cube for all triplets and their associated pvalue
 
-    print('Step 7 : Find cube for all triplets and their associated pvalue')
+    if not old_method :
 
-    with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
-        dictio = json.load(jsonfile)
+        print('Step 7 : Find cube for all triplets and their associated pvalue')
 
-        save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_asymptotic_cube_pvalues')
+        with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
+            dictio = json.load(jsonfile)
 
-    two_simplex_from_csv(data_name + '_asymptotic_cube_pvalues.csv', alpha, data_name + '_asymptotic_two_simplices_' + str(alpha)[2:])
+            save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_asymptotic_cube_pvalues')
 
-    exit()
+        two_simplex_from_csv(data_name + '_asymptotic_cube_pvalues.csv', alpha, data_name + '_asymptotic_two_simplices_' + str(alpha)[2:])
 
+        exit()
+
+    else:
+        print('OLD WAY : ')
 
     ############## OLD WAY : FIND EMPTY TRIANGLES AND TEST THEM : ###################
 
 
     ######## Fifth step : Find all triangles in the previous network
 
-    #g = read_pairwise_p_values(data_name + 'asymptotic_pvalues_birds.csv', alpha)
+        print('Finding all empty triangles in the network')
 
-    #save_all_triangles(g, data_name + '_asymptotic_triangles_' + str(alpha)[2:])
+        g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
-    #print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv'))
+        save_all_triangles(g, data_name + '_asymptotic_triangles_' + str(alpha)[2:])
+
+        print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv'))
 
     ######## Sixth step : Find all the p-values for the triangles under the hypothesis of homogeneity
 
-    #triangles_p_values_AB_AC_BC(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', matrix1)
+        print('Find all the p-values for the triangles under the hypothesis of homogeneity')
+
+        with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
+            dictio = json.load(jsonfile)
+
+            triangles_p_values_AB_AC_BC_dictionary(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
 
     ######## Fifth step : Exctract all 2-simplices
 
-    #extract_2_simplex_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_nama + '_asympt_2-simplices_' + str(alpha)[2:])
+        print('Exctract 2-simplices')
+
+        extract_2_simplex_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asympt_2-simplices_' + str(alpha)[2:])
 
     # THIS ONE GIVES ALL TRIANGLES THAT CONVERGED REGARDLESS OF THEIR P-VALUE (NO ALPHA NEEDED)
     #extract_converged_triangles(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', data_name + '_converged_triangles')
@@ -573,36 +628,36 @@ if __name__ == '__main__':
 
     #### to json for d3js :
 
-    #g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
+    g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
-    #node_dictio_list = []
-    #for noeud in g.nodes:
-    #    node_dictio_list.append({"id": str(noeud), "group": 1})
-    #    # node_dictio_list.append({"id":str(noeud)})
+    node_dictio_list = []
+    for noeud in g.nodes:
+        node_dictio_list.append({"id": str(noeud), "group": 1})
+        # node_dictio_list.append({"id":str(noeud)})
 
-    #link_dictio_list = []
-    #for lien in g.edges:
-    #    link_dictio_list.append({"source": str(lien[0]), "target": str(lien[1]), "value": 1})
+    link_dictio_list = []
+    for lien in g.edges:
+        link_dictio_list.append({"source": str(lien[0]), "target": str(lien[1]), "value": 1})
 
-    #triplex_dictio_list = []
+    triplex_dictio_list = []
 
-    #with open("TEST_TRIPLETS_ASYMPT.csv", 'r') as csvfile:
-    #    reader = csv.reader(csvfile)
-    #    next(reader)
-    #    for row in reader:
-    #        print(row)
-    #        try:
-    #            pval = float(row[-1])
-    #            if pval < 0.001:
-    #                triplex_dictio_list.append({"nodes": [str(row[0]), str(row[1]), str(row[2])]})
-    #        except:
-    #            pass
+    with open("TEST_TRIPLETS_ASYMPT.csv", 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            print(row)
+            try:
+                pval = float(row[-1])
+                if pval < 0.001:
+                    triplex_dictio_list.append({"nodes": [str(row[0]), str(row[1]), str(row[2])]})
+            except:
+                pass
 
 
-    #json_diction = {"nodes": node_dictio_list, "links": link_dictio_list, "triplex": triplex_dictio_list}
-    #with open('d3js_simplicialcomplex_asympt_001.json', 'w') as outfile:
-    #    json.dump(json_diction, outfile)
-    #exit()
+    json_diction = {"nodes": node_dictio_list, "links": link_dictio_list, "triplex": triplex_dictio_list}
+    with open('d3js_simplicialcomplex_asympt_001.json', 'w') as outfile:
+        json.dump(json_diction, outfile)
+    exit()
     # Extract nodes with groups :
     ######groupe_set = set()
     ######with open('groupes_otu.csv', 'r') as csvfile:
@@ -682,3 +737,4 @@ if __name__ == '__main__':
     #print("Average degree : ", np.sum(np.array(degree_sequence))/len(degree_sequence))
     #degreeCount = collections.Counter(degree_sequence)
     #deg, cnt = zip(*degreeCount.items())
+

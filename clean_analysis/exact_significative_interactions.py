@@ -16,7 +16,7 @@ import networkx as nx
 from tqdm import tqdm
 import csv
 from scipy.stats import chi2
-from Exact_chi_square_1_deg import *
+#from Exact_chi_square_1_deg import *
 
 
 def pvalue_AB_AC_BC(cont_cube):
@@ -523,11 +523,54 @@ def build_facet_list(matrix, two_simplices_file, one_simplices_file, alpha):
                     pass
     return
 
+def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix, bufferlimit=100000):
+
+    buffer = []
+
+    with open(csvfile, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+
+            cont_cube = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
+
+            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
+                int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
+                int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
+                int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
+
+            try :
+
+                chi2, p = dictionary[table_str]
+
+            except:
+
+                p = dictionary[table_str]
+
+            writer.writerow([row[0], row[1], row[2], p])
+
+def extract_2_simplex_from_csv(csvfilename, alpha, savename):
+
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            try :
+                p = float(row[-1])
+                if p < alpha:
+                    writer = csv.writer(fout)
+                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), p])
+            except:
+                pass
 
 
 
 if __name__ == '__main__':
-
+    old_way = False
     dirName = 'vOTUS'
     data_name = 'vOTUS'
 
@@ -548,63 +591,96 @@ if __name__ == '__main__':
     data_name = os.path.join(dirName, data_name)
 
 
-    ######## First step : Extract all the unique tables
+    ####### First step : Extract all the unique tables
 
-    #print('Step 1 : Extract all the unique tables')
+    print('Step 1 : Extract all the unique tables')
 
-    ## Finds all unique tables
-    #find_unique_tables(matrix1, data_name)
+    # Finds all unique tables
+    find_unique_tables(matrix1, data_name)
 
-    ######### Second step : Extract pvalues for all tables with an exact Chi3 distribution
+    ######## Second step : Extract pvalues for all tables with an exact Chi3 distribution
 
-    #print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
+    print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
 
-    #pvalues_for_tables(data_name, nb_samples)
+    pvalues_for_tables(data_name, nb_samples)
 
-    ######### Third step : Find table for all links and their associated pvalue
+    ######## Third step : Find table for all links and their associated pvalue
 
-    #print('Step 3 : Find table for all links and their associated pvalue')
+    print('Step 3 : Find table for all links and their associated pvalue')
 
-    #with open(data_name + '_exact_pval_dictio.json') as jsonfile:
-    #    dictio = json.load(jsonfile)
-
-    #    save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
-
-
-    ######### Fourth step : Choose alpha and extract the network
-
-    #print('Step 4 : Generate network and extract edge_list for a given alpha')
-
-    #g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
-    #nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
-
-    #print('Number of nodes : ', g.number_of_nodes())
-    #print('Number of links : ', g.number_of_edges())
-
-    ######### Fifth step : Extract all the unique cubes
-
-    #print('Step 5 : Extract all the unique cubes')
-
-    #find_unique_cubes(matrix1, data_name)
-
-    ######## Sixth step : Extract pvalues for all cubes with an exact CHI 3 distribution
-
-    #print('Step 6: Extract pvalues for all tables with an exact CHI 3 distribution')
-
-    #pvalues_for_cubes(data_name, nb_samples)
-
-    ######### Seventh step : Find cube for all triplets and their associated pvalue
-
-    print('Step 7 : Find cube for all triplets and their associated pvalue')
-
-    with open(data_name + "_exact_cube_pval_dictio.json") as jsonfile:
+    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
         dictio = json.load(jsonfile)
 
-        save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_exact_cube_pvalues')
+        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
 
-    two_simplex_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_two_simplices_'  + str(alpha)[2:])
 
-    exit()
+    ######## Fourth step : Choose alpha and extract the network
+
+    print('Step 4 : Generate network and extract edge_list for a given alpha')
+
+    g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
+    nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
+
+    print('Number of nodes : ', g.number_of_nodes())
+    print('Number of links : ', g.number_of_edges())
+
+    ######## Fifth step : Extract all the unique cubes
+
+    print('Step 5 : Extract all the unique cubes')
+
+    find_unique_cubes(matrix1, data_name)
+
+    ####### Sixth step : Extract pvalues for all cubes with an exact CHI 3 distribution
+
+    print('Step 6: Extract pvalues for all tables with an exact CHI 3 distribution')
+
+    pvalues_for_cubes(data_name, nb_samples)
+
+    ######## Seventh step : Find cube for all triplets and their associated pvalue
+
+    if not old_way:
+
+        print('Step 7 : Find cube for all triplets and their associated pvalue')
+
+        with open(data_name + "_exact_cube_pval_dictio.json") as jsonfile:
+            dictio = json.load(jsonfile)
+
+            save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_exact_cube_pvalues')
+
+        two_simplex_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_two_simplices_'  + str(alpha)[2:])
+
+        exit()
+
+    else:
+        print('OLD WAY : ')
+
+    ############## OLD WAY : FIND EMPTY TRIANGLES AND TEST THEM : ###################
+
+
+    ######## Fifth step : Find all triangles in the previous network
+
+        print('Finding all empty triangles in the network')
+
+        g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
+
+        save_all_triangles(g, data_name + '_exact_triangles_' + str(alpha)[2:])
+
+        print('Number of triangles : ', count_triangles_csv(data_name + '_exact_triangles_' + str(alpha)[2:] + '.csv'))
+
+    ######## Sixth step : Find all the p-values for the triangles under the hypothesis of homogeneity
+
+        print('Find all the p-values for the triangles under the hypothesis of homogeneity')
+
+        with open(data_name + "_exact_cube_pval_dictio.json") as jsonfile:
+            dictio = json.load(jsonfile)
+
+            triangles_p_values_AB_AC_BC_dictionary(data_name + '_exact_triangles_' + str(alpha)[2:] + '.csv', data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
+
+    ######## Fifth step : Extract all 2-simplices
+
+        print('Extract 2-simplices')
+
+        extract_2_simplex_from_csv(data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_exact_2-simplices_' + str(alpha)[2:])
 
     ################# DONE ###################
 
@@ -736,3 +812,4 @@ if __name__ == '__main__':
     #    json.dump(json_diction, outfile)
 
     # exit()
+
