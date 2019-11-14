@@ -355,6 +355,18 @@ def build_simplex_tree(facetlist, highest_dim):
 
     return st
 
+def skeleton_to_graph(simplex_tree):
+
+    g = nx.Graph()
+
+    for simplex in simplex_tree.get_skeleton(1):
+        if len(simplex[0]) == 2:
+            g.add_edge(*simplex[0])
+
+    return g
+
+
+
 def compute_nb_simplices(simplex_tree, dim, andlower=True):
 
     i = 0

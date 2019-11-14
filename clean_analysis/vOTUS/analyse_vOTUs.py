@@ -1,6 +1,6 @@
 #from clean_analysis.exact_significative_interactions import *
 #from clean_analysis.bird.compare_edge_list import *
-from analyse_betti import compute_betti, compute_nb_simplices, build_simplex_tree
+from analyse_betti import compute_betti, compute_nb_simplices, build_simplex_tree, skeleton_to_graph
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
@@ -36,7 +36,6 @@ def two_simplex_from_csv(csvfilename, alpha):
                     two_simplex_list.append([int(row[0]), int(row[1]), int(row[2]),  p])
             except:
                 pass
-
 
     return two_simplex_list
 
@@ -85,7 +84,34 @@ def build_facet_list(matrix, two_simplices_file, one_simplices_file, alpha):
             pass
     return
 
-def build_facet_list_with_phi(matrix, two_simplices_file, one_simplices_file, alpha, phi):
+def phi_coefficient_table(cont_tab):
+    row_sums = np.sum(cont_tab, axis=1)
+    col_sums = np.sum(cont_tab, axis=0)
+    return (cont_tab[0,0]*cont_tab[1,1] - cont_tab[1,0]*cont_tab[0,1])/np.sqrt(row_sums[0]*row_sums[1]*col_sums[0]*col_sums[1])
+
+def get_cont_table(u_idx, v_idx, matrix):
+    # Computes the 2X2 contingency table for the occurrence matrix
+    row_u_present = matrix[u_idx, :]
+    row_v_present = matrix[v_idx, :]
+
+    row_u_not_present = 1 - row_u_present
+    row_v_not_present = 1 - row_v_present
+
+    # u present, v present
+    table00 = np.dot(row_u_present, row_v_present)
+
+    # u present, v NOT present
+    table01 = np.dot(row_u_present, row_v_not_present)
+
+    # u NOT present, v present
+    table10 = np.dot(row_u_not_present, row_v_present)
+
+    # u NOT present, v NOT present
+    table11 = np.dot(row_u_not_present, row_v_not_present)
+
+    return np.array([[table00, table01], [table10, table11]])
+
+def build_facet_list_with_phi(matrix, two_simplices_file, one_simplices_file, alpha, phi_pos=True):
     #open('facet_list.txt', 'a').close()
 
     with open('facet_list.txt', 'w') as facetlist:
@@ -105,10 +131,16 @@ def build_facet_list_with_phi(matrix, two_simplices_file, one_simplices_file, al
                 try:
                     p = float(row[-1])
                     ph = float(row[-2])
-                    if p < alpha and ph >= phi :
-                        # Reject H_0 in which we suppose that u and v are independent
-                        # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
-                        facetlist.write(str(row[0]) + ' ' + str(row[1]) + '\n')
+                    if phi_pos:
+                        if p < alpha and ph >= 0 :
+                            # Reject H_0 in which we suppose that u and v are independent
+                            # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                            facetlist.write(str(row[0]) + ' ' + str(row[1]) + '\n')
+                    else:
+                        if p < alpha and ph <= 0:
+                            # Reject H_0 in which we suppose that u and v are independent
+                            # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                            facetlist.write(str(row[0]) + ' ' + str(row[1]) + '\n')
                 except:
                     pass
         try:
@@ -118,13 +150,28 @@ def build_facet_list_with_phi(matrix, two_simplices_file, one_simplices_file, al
                 next(reader)
 
                 for row in tqdm(reader):
+                    two_simp = [row[0], row[1], row[2]]
+
+                    phi_list = []
+
+                    for one_simp in itertools.combinations(two_simp, 2):
+                        contingency_table = get_cont_table(int(one_simp[0]), int(one_simp[1]), matrix)
+                        phi_list.append(phi_coefficient_table(contingency_table))
 
                     try:
                         p = float(row[-1])
-                        if p < alpha:
-                            # Reject H_0 in which we suppose that u and v are independent
-                            # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
-                            facetlist.write(str(row[0]) + ' ' + str(row[1]) + ' ' + str(row[2]) + '\n')
+
+                        if phi_pos and np.all( np.array(phi_list) >= 0):
+
+                            if p < alpha:
+                                # Reject H_0 in which we suppose that u and v are independent
+                                # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                                facetlist.write(str(row[0]) + ' ' + str(row[1]) + ' ' + str(row[2]) + '\n')
+                        elif not phi_pos and np.all( np.array(phi_list) <= 0):
+                            if p < alpha:
+                                # Reject H_0 in which we suppose that u and v are independent
+                                # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                                facetlist.write(str(row[0]) + ' ' + str(row[1]) + ' ' + str(row[2]) + '\n')
                     except:
                         pass
         except:
@@ -211,6 +258,33 @@ def read_pairwise_p_values(filename, alpha=0.01):
 
     return graph
 
+def read_pairwise_p_values_phi(filename, alpha=0.01, phi_pos=True):
+
+    graph = nx.Graph()
+
+    with open(filename, 'r') as csvfile:
+
+        reader = csv.reader(csvfile)
+        next(reader)
+
+        for row in tqdm(reader):
+
+            try:
+                p = float(row[-1])
+                phi = float(row[-2])
+                if p < alpha and phi_pos and phi >= 0:
+                    # Reject H_0 in which we suppose that u and v are independent
+                    # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-2]), p_value=p)
+                elif p < alpha and not phi_pos and phi <= 0:
+                    # Reject H_0 in which we suppose that u and v are independent
+                    # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-2]), p_value=p)
+            except:
+                pass
+
+    return graph
+
 def to_facet_list():
 
     facetlist = []
@@ -256,10 +330,43 @@ if __name__ == '__main__':
     ex_lakes_2_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_exact_pvalues.csv'
     ex_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_exact_cube_pvalues.csv'
 
+    #build_facet_list_with_phi(matrix1, as_lakes_3_pvalues, as_lakes_2_pvalues, 0.01, phi_pos=False)
+    #build_facet_list_with_phi(matrix1, ex_lakes_3_pvalues, ex_lakes_2_pvalues, 0.0001, phi_pos=False)
+
+    #build_facet_list(matrix1, as_lakes_3_pvalues, as_lakes_2_pvalues, 0.01)
+
+    #prun('facet_list.txt')
+
+    #facetlist = to_facet_list()
+
+    #st = build_simplex_tree(facetlist, 2)
+
+    #g = skeleton_to_graph(st)
+
+    #plt.imshow(nx.to_numpy_matrix(g))
+
+    #plt.show()
+
+    #g = read_pairwise_p_values_phi(as_lakes_2_pvalues, 0.01, phi_pos=False)
+
+    #plt.imshow(nx.to_numpy_matrix(g))
+
+    #plt.show()
+
+    #g = read_pairwise_p_values(as_lakes_2_pvalues, 0.01)
+
+    #plt.imshow(nx.to_numpy_matrix(g))
+
+    #plt.show()
+
+
+
+    #exit()
+
     # Figures en fonction de alpha (Nombre de liens, nombre de 2-simplexes, nombre de composantes, nombres de Betti)
 
 
-    # Nombre de 2-simplexes avec les deux méthodes
+    ## Nombre de 2-simplexes avec les deux méthodes
 
     #for alpha in np.logspace(-8, -1.3):
 
@@ -428,24 +535,32 @@ if __name__ == '__main__':
     #plt.legend(loc=0)
     #plt.show()
 
-    # Pour un alpha donné, Nb noeuds lien 2-simplexes Betti distribution des degrés communautés, filtrations sur PHI
+    ## Pour un alpha donné, Nb noeuds lien 2-simplexes Betti distribution des degrés communautés, filtrations sur PHI
 
-    for alpha in [0.001, 0.01, 0.05]:
-        g = read_pairwise_p_values(virus_path, alpha)
-        plt.scatter(alpha, nx.number_connected_components(g))
+    #exit()
 
-    plt.xlabel('alpha')
-    plt.ylabel('nb de composantes')
-    plt.title('Nombre de composantes en fonction de alpha')
-    plt.legend(loc=0)
+    #for alpha in [0.1]:
+    #    g = read_pairwise_p_values(virus_path, alpha)
+    #    plt.scatter(alpha, nx.number_connected_components(g))
+
+    #plt.xlabel('alpha')
+    #plt.ylabel('nb de composantes')
+    #plt.title('Nombre de composantes en fonction de alpha')
+    #plt.legend(loc=0)
+    #plt.show()
+
+
+
+
+    alpha = 0.001
+
+    #g = read_pairwise_p_values(virus_path, alpha)
+
+    g = read_pairwise_p_values_phi(virus_path, alpha)
+
+    plt.imshow(nx.to_numpy_matrix(g))
+
     plt.show()
-
-
-
-
-    alpha = 0.01
-
-    g = read_pairwise_p_values(virus_path, alpha)
 
     print('Number of nodes : ', g.number_of_nodes())
     print('Number of links : ', g.number_of_edges())
