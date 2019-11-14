@@ -13,10 +13,8 @@ import time
 import itertools
 """
 Author: Xavier Roy-Pomerleau <xavier.roy-pomerleau.1@ulaval.ca>
-
 In this module we compute the Betti numbers of a dataset and its randomized instances. We also plot the Betti number
 distribution and the graph representing the real data.
-
 """
 
 def facet_list_to_graph(facet_list):
@@ -32,16 +30,13 @@ def facet_list_to_bipartite(facet_list):
     Convert a facet list to a bipartite graph. It also returns one of the set of the bipartite graph. This is usefull
     in the case where the graph is disconnected in the sense that no path exists between one or more node(s) and all
     the others. This case raises this exception when we want to plot the graph with networkX
-
     AmbiguousSolution : Exception – Raised if the input bipartite graph is disconnected and no container with all nodes
     in one bipartite set is provided. When determining the nodes in each bipartite set more than one valid solution is
     possible if the input graph is disconnected.
-
     In this case, we can use TODO to specify one of the node set (here the facets).
     Parameters
     ----------
     facet_list (list of list) : Facet list that we want to convert to a bipartite graph
-
     Returns
     g (NetworkX graph object) : Bipartite graph with two node sets well identified
     facet_node_list (list of labeled nodes) : Set of nodes that represent facets in the bipartite graph
@@ -68,7 +63,6 @@ def compute_betti(facetlist, highest_dim):
     highest_dim (int) : Highest dimension allowed for the facets. If a facet is of higher dimension in the facet list,
                         the algorithm breaks it down into it's N choose k faces. The resulting simplicial complexe is
                         called the j-skeleton, where j = highest_dim.
-
     Returns
     -------
     The (highest_dim - 1) Betti numbers of the simplicial complexe.
@@ -114,7 +108,6 @@ def compute_betti(facetlist, highest_dim):
 def compute_and_store_bettis(path, highest_dim, save_path):
     """
     Computes and saves the bettis numbers of the j-skeleton (j = highest_dim) of a facetlist stored in a .txt file.
-
     Parameters
     ----------
     path (str) : Path to the facetlist stored in a txt file. The shape of the data correspond to the shape of the outputs
@@ -124,10 +117,8 @@ def compute_and_store_bettis(path, highest_dim, save_path):
                         called the j-skeleton, where j = highest_dim. See The Simplex Tree: An Efficient Data Structure
                         for General Simplicial Complexes by Boissonat, Maria for information about j-skeletons.
     save_path (str) : Path where to save the bettinumbers (npy file)
-
     Returns
     -------
-
     """
     bettilist = []
     facetlist = []
@@ -171,10 +162,8 @@ def compute_and_store_bettis_from_instances(instance_path, idx_range, highest_di
                         called the j-skeleton, where j = highest_dim. See The Simplex Tree: An Efficient Data Structure
                         for General Simplicial Complexes by Boissonat, Maria for information about j-skeletons.
     save_path (str) : path where to save the array of betti numbers.
-
     Returns
     -------
-
     """
 
     bettilist = []
@@ -220,10 +209,8 @@ def plot_betti_dist(bettiarray_instance, bettiarray_data):
     ----------
     bettiarray_instance (np.array) : saved array using compute_and_store_bettis_from_instances
     bettiarray_data (np.array) : saved array using compute_and_store_bettis
-
     Returns
     -------
-
     """
     for column_index in range(0, bettiarray_instance.shape[1]):
         plt.figure(column_index)
@@ -249,11 +236,9 @@ def highest_possible_betti(facetlist):
     ----------
     facetlist (List of lists) : List that contains sublist. These sublists contain the indices of the nodes that are part
                                 of the facet (each sublist is a maximal facet).
-
     Returns
     -------
     The dimension of the highest non trivial Betti number.
-
     """
 
     # Sort the facet list by ascending order of facet size
@@ -387,10 +372,10 @@ def compute_nb_simplices(simplex_tree, dim, andlower=True):
         count = 0
 
         for simplex in simplex_tree.get_skeleton(dim):
-            if len(simplex[0] == dim + 1):
+            if len(simplex[0]) == dim + 1:
                 count += 1
         print('Number of ' + str(dim - i) + '-simplices : ', count)
-
+        return count
     return
 
     # print(len(st.get_skeleton(1)))
@@ -483,17 +468,14 @@ if __name__ == '__main__':
     """
     #OLD CODE, MIGHT STIL BE USEFULL
     start = time.time()
-
     # Initialise the list that will contain the Betti numbers
     betti0list = []
     betti1list = []
     betti2list = []
-
     # Instruction : Change the range to include the instances you want to use.
     for idx in range(1, 101):
         with open('/home/xavier/Documents/Projet/Betti_scm/crime/alice1_crime_instance' + str(idx) + '.json', 'r') as file:
             facetlist = json.load(file)
-
             st = gudhi.SimplexTree()
             i = 0
             for facet in facetlist:
@@ -509,7 +491,6 @@ if __name__ == '__main__':
                 #print(i)
                 i += 1
             startskel = time.time()
-
             # Instruction : Change the dimension of the skeleton you want to use. From a skeleton of dimension d, we can
             # only compute Betti numbers lower than d. The dimension of the skeleton has to be coherent with the
             # dimension of the largest facet allowed, meaning that if we break a facet into its N choose K faces, where
@@ -519,31 +500,21 @@ if __name__ == '__main__':
             for tupl in skel:
                 sk.insert(tupl[0])
                 startpers = time.time()
-
             # This function has to be launched in order to compute the Betti numbers
             sk.persistence()
             startbet = time.time()
             Bettis = sk.betti_numbers()
-
             betti0list.append(Bettis[0])
             betti1list.append(Bettis[1])
             #betti2list.append(Bettis[2])
-
             print('Betti : ', Bettis, compute_betti(facetlist, 3))
     print(np.mean(betti0list), np.mean(betti1list))
     print('Total time : ', time.time() - start)
-
-
-
     ### Instruction : change the file path to the actual data.
-
     site_facet_list = []
-
     with open("/home/xavier/Documents/Projet/Betti_scm/datasets/facet_list_c1_as_simplices.txt") as f:
         for l in f:
             site_facet_list.append([int(x) for x in l.strip().split()])
-
-
     st = gudhi.SimplexTree()
     i = 0
     for facet in site_facet_list:
@@ -556,30 +527,22 @@ if __name__ == '__main__':
             st.insert(facet)
         print(i)
         i += 1
-
     print('_____________________________________________________________')
-
     startskel = time.time()
     # Instruction : change the dimension of the skeleton
     skel = st.get_skeleton(2)
     sk = gudhi.SimplexTree()
     for tupl in skel:
         sk.insert(tupl[0])
-
     startpers = time.time()
-
-
     sk.persistence()
     print('Time to persistence analysis : ', time.time() - startpers)
-
     startbet = time.time()
     bettireal = sk.betti_numbers()
     print('BETTIREAL : ', bettireal)
-
     # Plot the distributions of Betti0 and Betti1
     # Instruction : For each figure, change the bins for an appropriate value
     plt.figure(40)
-
     plt.hist(betti0list, bins=np.arange(0,1000)-0.5, density=True)
     #hist = np.histogram(betti0list, bins=2)
     #print(hist)
@@ -590,7 +553,6 @@ if __name__ == '__main__':
     # plt.ylim(0, 30)
     plt.xlabel('Number of Betti 0')
     plt.ylabel('Normalized count')
-
     plt.figure(41)
     plt.hist(betti1list, bins=np.arange(0,400)-0.5, density=True)
     #plt.hist(betti1list2, density=True)
@@ -602,7 +564,6 @@ if __name__ == '__main__':
     # plt.ylim(0, 30)
     plt.xlabel('Number of Betti 1')
     plt.ylabel('Normalized count')
-
     #plt.figure(42)
     #plt.hist(betti2list, bins=np.arange(0,6)-0.5, density=True)
     ## plt.hist(betti1list2, density=True)
@@ -615,17 +576,13 @@ if __name__ == '__main__':
     #plt.xlabel('betti2')
     #plt.ylabel('Histogram')
     plt.show()
-
     # Instruction : If the bipartite graph has to be plotted, remove 'exit()' so the algorithm can reach the lines.
     exit()
-
     G, site_node_list = facet_list_to_bipartite(site_facet_list)
-
     sets = nx.algorithms.bipartite.sets(G, top_nodes=site_node_list)
     pos = nx.spring_layout(G)
     nx.draw_networkx_nodes(G, pos, nodelist=sets[0], node_color='b', node_size=70)
     nx.draw_networkx_nodes(G, pos, nodelist=sets[1], node_color='r', node_size=90, node_shape='^')
     nx.draw_networkx_edges(G, pos)
-
     plt.show()
     """
