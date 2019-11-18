@@ -514,7 +514,7 @@ if __name__ == '__main__':
     data_name = 'vOTUS'
 
     alpha = 0.01
-    matrix1 = np.load('QC_Temp_precip-biadjacency.npy')
+    matrix1 = np.load(r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS_occ.npy').T
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist
@@ -620,6 +620,8 @@ if __name__ == '__main__':
         print('Exctract 2-simplices')
 
         extract_2_simplex_from_csv(data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asympt3degrees_2-simplices_' + str(alpha)[2:])
+
+        exit()
 
     # THIS ONE GIVES ALL TRIANGLES THAT CONVERGED REGARDLESS OF THEIR P-VALUE (NO ALPHA NEEDED)
     #extract_converged_triangles(data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:] + '_pvalues.csv', data_name + '_converged_triangles')
