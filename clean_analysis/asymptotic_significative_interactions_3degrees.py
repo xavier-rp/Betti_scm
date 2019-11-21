@@ -21,7 +21,7 @@ from exact_chi_square import chisq_formula
 def pvalue_AB_AC_BC(cont_cube):
     expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
     if expected is not None:
-        return chisq_test(cont_cube, expected, df=3)[1]
+        return chisq_test(cont_cube, expected, df=7)[1]
     else:
         return expected
 
@@ -345,7 +345,7 @@ def pvalues_for_tables(file_name):
             expected1 = mle_2x2_ind(table)
             pvaldictio[table_id] = chisq_test(table, expected1, df=3)
 
-        json.dump(pvaldictio, open(file_name + "_asymptotic3degrees_pval_dictio.json", 'w'))
+        json.dump(pvaldictio, open(file_name + "_asymptotic_pval_dictio.json", 'w'))
 
 def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename):
 
@@ -416,12 +416,12 @@ def pvalues_for_cubes(file_name):
 
             if expected is not None:
 
-                pvaldictio[table_id] = chisq_test(table, expected, df=3)
+                pvaldictio[table_id] = chisq_test(table, expected, df=7)
 
             else :
                 pvaldictio[table_id] = str(expected)
 
-        json.dump(pvaldictio, open(data_name + "_asymptotic3degrees_cube_pval_dictio.json", 'w'))
+        json.dump(pvaldictio, open(data_name + "_asymptotic_cube_pval_dictio.json", 'w'))
 
 
 def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
@@ -510,11 +510,11 @@ def extract_2_simplex_from_csv(csvfilename, alpha, savename):
 
 if __name__ == '__main__':
     old_method = False
-    dirName = 'vOTUS'
-    data_name = 'vOTUS'
+    dirName = 'vOTUS_7degrees'
+    data_name = 'vOTUS_7degrees'
 
     alpha = 0.01
-    matrix1 = np.load(r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS_occ.npy').T
+    matrix1 = np.load(r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS_occ.npy').T
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist
@@ -547,18 +547,18 @@ if __name__ == '__main__':
 
     print('Step 3 : Find table for all links and their associated pvalue')
     print(data_name + '_test')
-    with open(data_name + '_asymptotic3degrees_pval_dictio.json') as jsonfile:
+    with open(data_name + '_asymptotic_pval_dictio.json') as jsonfile:
         dictio = json.load(jsonfile)
 
-        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_asymptotic3degrees_pvalues')
+        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_asymptotic_pvalues')
 
 
     ######## Fourth step : Choose alpha and extract the network
 
     print('Step 4 : Generate network and extract edge_list for a given alpha')
 
-    g = read_pairwise_p_values(data_name + '_asymptotic3degrees_pvalues.csv', alpha)
-    nx.write_edgelist(g, data_name + '_asymptotic3degrees_edge_list_' + str(alpha)[2:] + '.txt', data=True)
+    g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
+    nx.write_edgelist(g, data_name + '_asymptotic_edge_list_' + str(alpha)[2:] + '.txt', data=True)
 
     print('Number of nodes : ', g.number_of_nodes())
     print('Number of links : ', g.number_of_edges())
@@ -581,12 +581,12 @@ if __name__ == '__main__':
 
         print('Step 7 : Find cube for all triplets and their associated pvalue')
 
-        with open(data_name + "_asymptotic3degrees_cube_pval_dictio.json") as jsonfile:
+        with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
-            save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_asymptotic3degrees_cube_pvalues')
+            save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_asymptotic_cube_pvalues')
 
-        two_simplex_from_csv(data_name + '_asymptotic3degrees_cube_pvalues.csv', alpha, data_name + '_asymptotic3degrees_two_simplices_' + str(alpha)[2:])
+        two_simplex_from_csv(data_name + '_asymptotic_cube_pvalues.csv', alpha, data_name + '_asymptotic_two_simplices_' + str(alpha)[2:])
 
         exit()
 
@@ -600,26 +600,26 @@ if __name__ == '__main__':
 
         print('Finding all empty triangles in the network')
 
-        g = read_pairwise_p_values(data_name + '_asymptotic3degrees_pvalues.csv', alpha)
+        g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
-        save_all_triangles(g, data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:])
+        save_all_triangles(g, data_name + '_asymptotic_triangles_' + str(alpha)[2:])
 
-        print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:] + '.csv'))
+        print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv'))
 
     ######## Sixth step : Find all the p-values for the triangles under the hypothesis of homogeneity
 
         print('Find all the p-values for the triangles under the hypothesis of homogeneity')
 
-        with open(data_name + "_asymptotic3degrees_cube_pval_dictio.json") as jsonfile:
+        with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
-            triangles_p_values_AB_AC_BC_dictionary(data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
+            triangles_p_values_AB_AC_BC_dictionary(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
 
     ######## Fifth step : Exctract all 2-simplices
 
         print('Exctract 2-simplices')
 
-        extract_2_simplex_from_csv(data_name + '_asymptotic3degrees_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asympt3degrees_2-simplices_' + str(alpha)[2:])
+        extract_2_simplex_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asympt_2-simplices_' + str(alpha)[2:])
 
         exit()
 
@@ -631,7 +631,7 @@ if __name__ == '__main__':
 
     #### to json for d3js :
 
-    g = read_pairwise_p_values(data_name + '_asymptotic3degrees_pvalues.csv', alpha)
+    g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
     node_dictio_list = []
     for noeud in g.nodes:

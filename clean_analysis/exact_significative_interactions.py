@@ -16,7 +16,7 @@ import networkx as nx
 from tqdm import tqdm
 import csv
 from scipy.stats import chi2
-#from Exact_chi_square_1_deg import *
+from Exact_chi_square_1_deg import *
 
 
 def pvalue_AB_AC_BC(cont_cube):
@@ -567,11 +567,44 @@ def extract_2_simplex_from_csv(csvfilename, alpha, savename):
             except:
                 pass
 
+def statistics_for_cubes(file_name, nb_sample):
+
+    with open(file_name + '_cube_list.json') as json_file:
+        table_set = json.load(json_file)
+
+        #### From the different tables : generate the chisqdist :
+
+        pvaldictio = {}
+
+        for it in tqdm(range(len(table_set))):
+
+            table_id = table_set[it]
+            table = np.random.rand(2, 2, 2)
+            table_id_list = str.split(table_id, '_')
+            table[0, 0, 0] = int(table_id_list[0])
+            table[0, 0, 1] = int(table_id_list[1])
+            table[0, 1, 0] = int(table_id_list[2])
+            table[0, 1, 1] = int(table_id_list[3])
+            table[1, 0, 0] = int(table_id_list[4])
+            table[1, 0, 1] = int(table_id_list[5])
+            table[1, 1, 0] = int(table_id_list[6])
+            table[1, 1, 1] = int(table_id_list[7])
+
+            N = np.sum(table)
+            expected_original = iterative_proportional_fitting_AB_AC_BC_no_zeros(table)
+
+            if expected_original is not None:
+                problist = mle_multinomial_from_table(expected_original)
+                sample = multinomial_problist_cont_cube(N, problist, nb_sample)
+                expec = np.tile(expected_original, (nb_samples, 1, 1)).reshape(nb_sample, 2, 2, 2)
+                chisq = chisq_formula_vector_for_cubes(sample, expec)
+
+                return chisq
 
 
 if __name__ == '__main__':
     old_way = False
-    dirName = 'vOTUS'
+    dirName = 'vOTUS_fortest'
     data_name = 'vOTUS'
 
     alpha = 0.01
@@ -579,8 +612,8 @@ if __name__ == '__main__':
     matrix1 = np.load('vOTUS_occ.npy').T
     matrix1 = matrix1.astype(np.int64)
 
-    build_facet_list(matrix1, r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_cube_pvalues.csv', r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_pvalues.csv', 0.01 )
-    exit()
+    #build_facet_list(matrix1, r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_cube_pvalues.csv', r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_pvalues.csv', 0.01 )
+    #exit()
     # Create target Directory if don't exist
     if not os.path.exists(dirName):
         os.mkdir(dirName)
@@ -593,42 +626,42 @@ if __name__ == '__main__':
 
     ####### First step : Extract all the unique tables
 
-    print('Step 1 : Extract all the unique tables')
+    #print('Step 1 : Extract all the unique tables')
 
-    # Finds all unique tables
-    find_unique_tables(matrix1, data_name)
+    ## Finds all unique tables
+    #find_unique_tables(matrix1, data_name)
 
-    ######## Second step : Extract pvalues for all tables with an exact Chi3 distribution
+    ######### Second step : Extract pvalues for all tables with an exact Chi3 distribution
 
-    print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
+    #print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
 
-    pvalues_for_tables(data_name, nb_samples)
+    #pvalues_for_tables(data_name, nb_samples)
 
-    ######## Third step : Find table for all links and their associated pvalue
+    ######### Third step : Find table for all links and their associated pvalue
 
-    print('Step 3 : Find table for all links and their associated pvalue')
+    #print('Step 3 : Find table for all links and their associated pvalue')
 
-    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
-        dictio = json.load(jsonfile)
+    #with open(data_name + '_exact_pval_dictio.json') as jsonfile:
+    #    dictio = json.load(jsonfile)
 
-        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
+    #    save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
 
 
-    ######## Fourth step : Choose alpha and extract the network
+    ######### Fourth step : Choose alpha and extract the network
 
-    print('Step 4 : Generate network and extract edge_list for a given alpha')
+    #print('Step 4 : Generate network and extract edge_list for a given alpha')
 
-    g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
-    nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
+    #g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
+    #nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
 
-    print('Number of nodes : ', g.number_of_nodes())
-    print('Number of links : ', g.number_of_edges())
+    #print('Number of nodes : ', g.number_of_nodes())
+    #print('Number of links : ', g.number_of_edges())
 
-    ######## Fifth step : Extract all the unique cubes
+    ######### Fifth step : Extract all the unique cubes
 
-    print('Step 5 : Extract all the unique cubes')
+    #print('Step 5 : Extract all the unique cubes')
 
-    find_unique_cubes(matrix1, data_name)
+    #find_unique_cubes(matrix1, data_name)
 
     ####### Sixth step : Extract pvalues for all cubes with an exact CHI 3 distribution
 

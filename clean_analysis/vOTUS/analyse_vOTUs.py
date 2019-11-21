@@ -285,6 +285,35 @@ def read_pairwise_p_values_phi(filename, alpha=0.01, phi_pos=True):
 
     return graph
 
+def read_pairwise_p_values_phi_matrix(filename, matrix, alpha=0.01, phi_pos=True):
+
+    graph = nx.Graph()
+
+    graph.add_nodes_from(np.arange(0, matrix.shape[0]))
+
+    with open(filename, 'r') as csvfile:
+
+        reader = csv.reader(csvfile)
+        next(reader)
+
+        for row in tqdm(reader):
+
+            try:
+                p = float(row[-1])
+                phi = float(row[-2])
+                if p < alpha and phi_pos and phi >= 0:
+                    # Reject H_0 in which we suppose that u and v are independent
+                    # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-2]), p_value=p)
+                elif p < alpha and not phi_pos and phi <= 0:
+                    # Reject H_0 in which we suppose that u and v are independent
+                    # Thus, we accept H_1 and add a link between u and v in the graph to show their dependency
+                    graph.add_edge(int(row[0]), int(row[1]), phi=float(row[-2]), p_value=p)
+            except:
+                pass
+
+    return graph
+
 def to_facet_list():
 
     facetlist = []
@@ -327,8 +356,17 @@ if __name__ == '__main__':
     as_lakes_2_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_asymptotic_pvalues.csv'
     as_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_asymptotic_cube_pvalues.csv'
 
+    as7d_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS_7degrees/vOTUS_7degrees_asymptotic_cube_pvalues.csv'
+
+    as3d_lakes_2_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_asymptotic3degrees_pvalues.csv'
+    as3d_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_asymptotic3degrees_cube_pvalues.csv'
+
+
     ex_lakes_2_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_exact_pvalues.csv'
     ex_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_exact_cube_pvalues.csv'
+
+    ex10k_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_exact_cube_pvalues_10000samples.csv'
+    ex10m_lakes_3_pvalues = r'/home/xavier/Documents/Projet/Betti_scm/clean_analysis/vOTUS/vOTUS_exact_cube_pvalues_10000000samples.csv'
 
     #build_facet_list_with_phi(matrix1, as_lakes_3_pvalues, as_lakes_2_pvalues, 0.01, phi_pos=False)
     #build_facet_list_with_phi(matrix1, ex_lakes_3_pvalues, ex_lakes_2_pvalues, 0.0001, phi_pos=False)
@@ -368,18 +406,27 @@ if __name__ == '__main__':
 
     ## Nombre de 2-simplexes avec les deux méthodes
 
-    #for alpha in np.logspace(-8, -1.3):
+    for alpha in np.logspace(-8, -1.3):
 
-    #    plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b')
-    #    plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), marker='x', c='r')
+        plt.scatter(alpha, len(two_simplex_from_csv(ex10k_lakes_3_pvalues, alpha)), c='b')
+        plt.scatter(alpha, len(two_simplex_from_csv(ex10m_lakes_3_pvalues, alpha)), c='k', marker='+')
+        #plt.scatter(alpha, len(two_simplex_from_csv(as3d_lakes_3_pvalues, alpha)), c='k', marker='+')
+        #plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b')
+        plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), marker='x', c='r')
+        plt.scatter(alpha, len(two_simplex_from_csv(as7d_lakes_3_pvalues, alpha)), c='g', marker='*')
 
-    #plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b', label='Asymptotic')
-    #plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), c='r', marker='x', label='Exact')
-    #plt.legend(loc=0)
-    #plt.xlabel('alpha')
-    #plt.ylabel('Nb 2-simplices')
-    #plt.title('Nombre de 2-simplexes pour les deux méthodes selon alpha')
-    #plt.show()
+    plt.scatter(alpha, len(two_simplex_from_csv(as7d_lakes_3_pvalues, alpha)), c='g', marker='*', label='Aympt 7d')
+    plt.scatter(alpha, len(two_simplex_from_csv(ex10k_lakes_3_pvalues, alpha)), c='b', label='10k')
+    plt.scatter(alpha, len(two_simplex_from_csv(ex10m_lakes_3_pvalues, alpha)), c='k', marker='+', label='10m')
+    plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), c='r', marker='x', label='1m')
+    #plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b', label='Asymptotic 1 degree')
+    #plt.scatter(alpha, len(two_simplex_from_csv(as3d_lakes_3_pvalues, alpha)), c='k', marker='+', label='Asymptotic 3 degrees')
+    #plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), c='r', marker='x', label='Exact 3 degrees')
+    plt.legend(loc=0)
+    plt.xlabel('alpha')
+    plt.ylabel('Nb 2-simplices')
+    plt.title('Nombre de 2-simplexes pour les deux méthodes selon alpha')
+    plt.show()
 
 
     ## Nombre de 1-simplexes avec les deux méthodes
@@ -556,9 +603,13 @@ if __name__ == '__main__':
 
     #g = read_pairwise_p_values(virus_path, alpha)
 
-    g = read_pairwise_p_values_phi(virus_path, alpha)
+    #g = read_pairwise_p_values_phi(virus_path, alpha)
+
+    g = read_pairwise_p_values_phi_matrix(virus_path, matrice, alpha)
 
     plt.imshow(nx.to_numpy_matrix(g))
+
+    np.save('Virus_pvalue_001', nx.to_numpy_matrix(g))
 
     plt.show()
 
