@@ -626,44 +626,44 @@ if __name__ == '__main__':
 
     ####### First step : Extract all the unique tables
 
-    #print('Step 1 : Extract all the unique tables')
+    print('Step 1 : Extract all the unique tables')
 
-    ## Finds all unique tables
-    #find_unique_tables(matrix1, data_name)
+    # Finds all unique tables
+    find_unique_tables(matrix1, data_name)
 
-    ######### Second step : Extract pvalues for all tables with an exact Chi3 distribution
+    ######## Second step : Extract pvalues for all tables with an exact Chi3 distribution
 
-    #print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
+    print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
 
-    #pvalues_for_tables(data_name, nb_samples)
+    pvalues_for_tables(data_name, nb_samples)
 
-    ######### Third step : Find table for all links and their associated pvalue
+    ######## Third step : Find table for all links and their associated pvalue
 
-    #print('Step 3 : Find table for all links and their associated pvalue')
+    print('Step 3 : Find table for all links and their associated pvalue')
 
-    #with open(data_name + '_exact_pval_dictio.json') as jsonfile:
-    #    dictio = json.load(jsonfile)
+    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
+        dictio = json.load(jsonfile)
 
-    #    save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
+        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
 
 
-    ######### Fourth step : Choose alpha and extract the network
+    ######## Fourth step : Choose alpha and extract the network
 
-    #print('Step 4 : Generate network and extract edge_list for a given alpha')
+    print('Step 4 : Generate network and extract edge_list for a given alpha')
 
-    #g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
-    #nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
+    g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
+    nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
 
-    #print('Number of nodes : ', g.number_of_nodes())
-    #print('Number of links : ', g.number_of_edges())
+    print('Number of nodes : ', g.number_of_nodes())
+    print('Number of links : ', g.number_of_edges())
 
-    ######### Fifth step : Extract all the unique cubes
+    ######## Fifth step : Extract all the unique cubes
 
-    #print('Step 5 : Extract all the unique cubes')
+    print('Step 5 : Extract all the unique cubes')
 
-    #find_unique_cubes(matrix1, data_name)
+    find_unique_cubes(matrix1, data_name)
 
-    ####### Sixth step : Extract pvalues for all cubes with an exact CHI 3 distribution
+    ###### Sixth step : Extract pvalues for all cubes with an exact CHI 3 distribution
 
     print('Step 6: Extract pvalues for all tables with an exact CHI 3 distribution')
 
@@ -846,3 +846,61 @@ if __name__ == '__main__':
 
     # exit()
 
+
+    #print('Step 6: Extract pvalues for all tables with an exact CHI 3 distribution')
+
+
+    #def pvalues_for_cubes_fig(file_name, nb_sample):
+
+    #    with open(file_name + '_cube_list.json') as json_file:
+    #        table_set = json.load(json_file)
+
+    #        #### From the different tables : generate the chisqdist :
+
+    #        for it in tqdm(range(len(table_set))):
+
+    #            table_id = table_set[it]
+    #            table = np.random.rand(2, 2, 2)
+    #            table_id_list = str.split(table_id, '_')
+    #            table[0, 0, 0] = int(table_id_list[0])
+    #            table[0, 0, 1] = int(table_id_list[1])
+    #            table[0, 1, 0] = int(table_id_list[2])
+    #            table[0, 1, 1] = int(table_id_list[3])
+    #            table[1, 0, 0] = int(table_id_list[4])
+    #            table[1, 0, 1] = int(table_id_list[5])
+    #            table[1, 1, 0] = int(table_id_list[6])
+    #            table[1, 1, 1] = int(table_id_list[7])
+
+    #            N = np.sum(table)
+    #            expected_original = iterative_proportional_fitting_AB_AC_BC_no_zeros(table)
+
+    #            if expected_original is not None:
+    #                problist = mle_multinomial_from_table(expected_original)
+    #                sample = multinomial_problist_cont_cube(N, problist, nb_sample)
+    #                expec = np.tile(expected_original, (nb_samples, 1, 1)).reshape(nb_sample, 2, 2, 2)
+    #                chisq = chisq_formula_vector_for_cubes(sample, expec)
+
+    #                return chisq
+
+
+    #chisq = pvalues_for_cubes_fig(data_name, nb_samples)
+
+    #df = 1
+
+
+    #fig, ax = plt.subplots(1, 1)
+    #bins2 = np.arange(0, max(chisq) + 1, 0.1)
+
+    ## plt.hist(chisqlist_chi1, bins=bins2, weights=np.repeat(1/len(chisqlist_chi1), len(chisqlist_chi1)), alpha=0.5, label='EXACT')
+    #plt.hist(chisq, bins=bins2, density=True, alpha=0.5, label='Exact')
+    #x = np.arange(0, 20, 0.01)
+    #ax.plot(x, chi2.pdf(x, 1), label='1 Degree')
+    #ax.plot(x, chi2.pdf(x, 3), label='3 Degrees')
+    #ax.plot(x, chi2.pdf(x, 7), label='7 Degrees')
+    ## bins2 = np.arange(0, max(chisqlist) + 5, 1)
+    ## print(max(chisqlist))
+    ## plt.hist(chisqlist, bins=bins2, alpha=0.5)
+    #plt.xlim([0,20])
+    #plt.ylim([0,1])
+    #plt.legend()
+    #plt.show()

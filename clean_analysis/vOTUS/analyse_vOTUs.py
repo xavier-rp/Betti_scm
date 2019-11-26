@@ -408,24 +408,27 @@ if __name__ == '__main__':
 
     for alpha in np.logspace(-8, -1.3):
 
-        plt.scatter(alpha, len(two_simplex_from_csv(ex10k_lakes_3_pvalues, alpha)), c='b')
+        #plt.scatter(alpha, len(two_simplex_from_csv(ex10k_lakes_3_pvalues, alpha)), c='b')
         plt.scatter(alpha, len(two_simplex_from_csv(ex10m_lakes_3_pvalues, alpha)), c='k', marker='+')
-        #plt.scatter(alpha, len(two_simplex_from_csv(as3d_lakes_3_pvalues, alpha)), c='k', marker='+')
-        #plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b')
+        plt.scatter(alpha, len(two_simplex_from_csv(as3d_lakes_3_pvalues, alpha)), c='m', marker='p')
+        plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b')
         plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), marker='x', c='r')
         plt.scatter(alpha, len(two_simplex_from_csv(as7d_lakes_3_pvalues, alpha)), c='g', marker='*')
 
+    plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b', label='Asympt 1d')
+    plt.scatter(alpha, len(two_simplex_from_csv(as3d_lakes_3_pvalues, alpha)), c='m', marker='p', label='Asympt 3d')
     plt.scatter(alpha, len(two_simplex_from_csv(as7d_lakes_3_pvalues, alpha)), c='g', marker='*', label='Aympt 7d')
-    plt.scatter(alpha, len(two_simplex_from_csv(ex10k_lakes_3_pvalues, alpha)), c='b', label='10k')
+    #plt.scatter(alpha, len(two_simplex_from_csv(ex10k_lakes_3_pvalues, alpha)), c='b', label='10k')
     plt.scatter(alpha, len(two_simplex_from_csv(ex10m_lakes_3_pvalues, alpha)), c='k', marker='+', label='10m')
     plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), c='r', marker='x', label='1m')
-    #plt.scatter(alpha, len(two_simplex_from_csv(as_lakes_3_pvalues, alpha)), c='b', label='Asymptotic 1 degree')
+
+
     #plt.scatter(alpha, len(two_simplex_from_csv(as3d_lakes_3_pvalues, alpha)), c='k', marker='+', label='Asymptotic 3 degrees')
     #plt.scatter(alpha, len(two_simplex_from_csv(ex_lakes_3_pvalues, alpha)), c='r', marker='x', label='Exact 3 degrees')
     plt.legend(loc=0)
     plt.xlabel('alpha')
     plt.ylabel('Nb 2-simplices')
-    plt.title('Nombre de 2-simplexes pour les deux méthodes selon alpha')
+    #plt.title('Nombre de 2-simplexes pour les deux méthodes selon alpha')
     plt.show()
 
 
