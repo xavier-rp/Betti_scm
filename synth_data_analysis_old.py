@@ -16,7 +16,7 @@ import networkx as nx
 from tqdm import tqdm
 import csv
 from scipy.stats import chi2
-from Exact_chi_square_1_deg import *
+from exact_chi_square_1_deg import *
 
 def pvalue_AB_AC_BC(cont_cube):
     expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
@@ -585,9 +585,9 @@ if __name__ == '__main__':
 
     print(bam[1])
 
-    analyser = Analyser(bam, 'test_analyser_exact')
+    analyser = Analyser(bam, 'test_analyser_aympt')
 
-    #analyser.analyse_exact(0.01)
+    analyser.analyse_asymptotic(0.01)
 
     x = []
     y = []

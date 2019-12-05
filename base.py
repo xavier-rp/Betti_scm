@@ -6,65 +6,242 @@ on the architecture of Zoo2019
 
 import networkx as nx
 import numpy as np
+import itertools
+import gudhi
 from copy import deepcopy
 
-"""
-Je dois commencer en générant un graph de manière aléatoire. Ensuite, je dois attribuer une interaction particulière
-à chacun des liens (la forme de l'intéraction et son poids genre wij = 9 et f = (xi-xj)^2 ou wij = -2 et f = (2xi+xj)^2.
-
-
-TODO Définir d'autres facteurs, des méthodes d'attribution de poids
-        implémenter une manière de désigner des simplexes de dimension 2 et plus ainsi qu'un facteur
-
-Avec ce réseau et ces fonction d'énergie, je dois initilialiser un état sur chacun des noeuds donc une série de 0 et de 1
-et calculer l'énergie.
-
-Ensuite je propose un changement aléatoire (0 vers 1 ou 1 vers 0) et je recalcule l'énergie, puis le sampler va s'occuper
-du reste
-"""
-
-class FactorGraph(nx.Graph):
+class FactorGraph():
     """Original graph that encodes all the interactions."""
 
-    def __init__(self, G=nx.Graph):
+    def __init__(self, facet_list=[]):
         """__init__
-        :param G: Networkx graph
+        :param facet_list: (list of lists) Each list in the list is a combination of integers
+                            representing the nodes of a facet in a simplicial complex.
         """
 
-        super(FactorGraph, self).__init__(G)
+        self.facet_list = facet_list
+        self._get_node_list()
         self.set_factors()
-        self.weights = []
+        #self._get_simplicial_complex()
+
+    def _get_simplicial_complex(self):
+
+        st = gudhi.SimplexTree()
+        for facet in self.factor_list:
+            st.insert(facet)
+
+        self.st = st
+
+    def _get_skeleton(self, j=1):
+
+        skeleton_facet_list = []
+
+        for facet in self.facet_list:
+
+            if len(facet) > j + 1 :
+
+                for lower_simplex in itertools.combinations(facet, j + 1):
+
+                    skeleton_facet_list.append(list(lower_simplex))
+
+            else :
+                skeleton_facet_list.append(facet)
+
+        return skeleton_facet_list
+
+    def _get_st_skeleton(self, j=1):
+
+        return self.st.get_skeleton(j)
+
+
+    def _get_node_list(self):
+
+        node_set = set()
+
+        for facet in self.facet_list:
+
+            for node in facet:
+
+                node_set.add(node)
+
+        self.node_list = list(node_set)
+        self.node_list.sort()
 
 
     def set_factors(self):
 
-        weight = -1
+        weight_list = []
 
-        for node in self.nodes:
+        factor_list = []
 
-            edges_of_node = self.edges(node)
+        for facet in self.facet_list:
 
-            if len(edges_of_node) > 0:
+            if len(facet) == 1:
 
-                factor_list = []
+                weight_list.append(-1)
 
-                for edge in edges_of_node:
+                factor_list.append(self.onefactor_state)
 
-                    factor_list.append((list(edge), weight, self.twofactor_difference_squared))
+            elif len(facet) == 2:
 
-                self.nodes[node]['list'] = factor_list
+                weight_list.append(-1)
+
+                #factor_list.append(self.twofactor_difference_squared)
+
+                #factor_list.append(self.twofactor_sum_squared)
+
+                #factor_list.append(self.twofactor_sum_squared_sym)
+
+                factor_list.append(self.twofactor_table_entry_pos)
+
+                #if np.random.rand(1)[0] > 0.5:
+                #    factor_list.append(self.twofactor_table_entry)
+                #else:
+                #    factor_list.append(self.twofactor_table_entry_pos)
+
+            elif len(facet) == 3:
+
+                weight_list.append(-1)
+
+                #factor_list.append(self.threefactor_pairsum_plus)
+                #factor_list.append(self.threefactor_sym)
+                #factor_list.append(self.threefactor_pairsum_sym_plus)
+
+                #factor_list.append(self.threefactor_all_terms_sym)
+                #factor_list.append(self.threefactor_all_terms_sym_with_diff_weights)
+                factor_list.append(self.threefactor_table_entry)
 
             else :
 
-                self.nodes[node]['list'] = [([node], weight, self.onefactor_state)]
+                print('Interactions with more than three nodes are not yet coded.')
 
-    def twofactor_difference_squared(self, node1_state, node2_state, weight):
+        self.factor_list = factor_list
+        self.weight_list = weight_list
 
-        return weight * (node1_state - node2_state) ** 2
+    def set_weight_list(self):
 
-    def onefactor_state(self, node1_state, weight):
+        #TODO
 
-        return weight * node1_state
+        return
+
+
+        #TODO : It seems that in most case, adding : /(1 + sum(node_states)) at the end a a factor flattens the
+        #probability distribution and should be encouraged I guess.
+    def threefactor_pairsum_plus(self, node_states, weight):
+        x1 = node_states[0]
+        x2 = node_states[1]
+        x3 = node_states[2]
+        return weight * ((x1 + x2) * (x1 + x3) * (x2 + x3) + x1 + x2 + x3)/(1 + sum(node_states))
+
+        #return weight * ((x1 + x2) * (x1 + x3) * (x2 + x3) + x1 + x2 + x3)
+
+    def threefactor_pairsum_sym_plus(self, node_states, weight):
+
+        x1 = node_states[0]
+        x2 = node_states[1]
+        x3 = node_states[2]
+        return weight * ((x1 + x2) * (x1 + x3) * (x2 + x3) + x1 + x2 + x3 + ((1 - x1) + (1 - x2)) * ((1 - x1) + (1 - x3)) * ((1 - x2) + (1 - x3)) + (1-x1) + (1 - x2) + (1 - x3)) / 3
+
+    def threefactor_sym(self, node_states, weight):
+        x1 = node_states[0]
+        x2 = node_states[1]
+        x3 = node_states[2]
+        return weight * ((x1*x2*x3) + (1-x1)*(1-x2)*(1-x3))
+
+        #return weight * ((x1 + x2) * (x1 + x3) * (x2 + x3) + x1 + x2 + x3)
+
+    def threefactor_all_terms_sym(self, node_states, weight):
+        x1 = node_states[0]
+        x2 = node_states[1]
+        x3 = node_states[2]
+        return weight * ((x1*x2*x3) + (1-x1)*(1-x2)*(1-x3) + x1*x2 + x1*x3 + x2*x3 + (1-x1)*(1-x2) + (1-x1)*(1-x3) + (1-x2)*(1-x3) + x1 + x2 + x3 + (1-x1) + (1-x2) + (1-x3))
+
+    def threefactor_all_terms_sym_with_diff_weights(self, node_states, weight, a=2, b=1, c=1.2, d=1, e=1, f=1, g=1.7):
+        x1 = node_states[0]
+        x2 = node_states[1]
+        x3 = node_states[2]
+        return weight * (a*(x1*x2*x3) + (1-x1)*(1-x2)*(1-x3) + b*x1*x2 + c*x1*x3 + d*x2*x3 + (1-x1)*(1-x2) + (1-x1)*(1-x3) + (1-x2)*(1-x3) + e*x1 + f*x2 + g*x3 + (1-x1) + (1-x2) + (1-x3))
+
+    def threefactor_table_entry(self, node_states, weight, a=2, b=1.3, c=1.2, d=1, e=0.7, f=0.9, g=0.8, h=0.3):
+        x1 = node_states[0]
+        x2 = node_states[1]
+        x3 = node_states[2]
+        return weight * (a*(x1*x2*x3) + b*x1*x2*(1-x3) + c*x1*(1-x2)*x3 + d*(1-x1)*x2*x3 + e*x1*(1-x2)*(1-x3)
+                         + f*(1-x1)*x2*(1-x3) + g*(1-x1)*(1-x2)*x3 + h*(1-x1)*(1-x2)*(1-x3))
+
+
+    def twofactor_difference_squared(self, node_states, weight):
+
+        return weight * (node_states[0] - node_states[1]) ** 2
+
+    def twofactor_sum_squared(self, node_states, weight):
+
+        return weight * (node_states[0] + node_states[1])**2
+
+    def twofactor_sum_squared_sym(self, node_states, weight):
+
+        return weight *((node_states[0] + node_states[1])**2 + ((1-node_states[0]) + (1-node_states[1]))**2)
+
+    def twofactor_table_entry(self, node_states, weight, a=1, b=1.7, c=1.3, d=1):
+
+        x1 = node_states[0]
+        x2 = node_states[1]
+
+        return weight * (a*x1*x2 + b*(1-x1)*x2 + c*x1*(1-x2) + d*(1-x1)*(1-x2))
+
+    def twofactor_table_entry_pos(self, node_states, weight, a=2, b=1.3, c=1.3, d=1):
+
+        x1 = node_states[0]
+        x2 = node_states[1]
+
+        return weight * (a*x1*x2 + b*(1-x1)*x2 + c*x1*(1-x2) + d*(1-x1)*(1-x2))
+
+
+    def onefactor_state(self, node_states, weight):
+
+        return weight * node_states[0]
+
+class Prob_dist():
+
+    def __init__(self, factorgraph, temperature=1):
+
+        self.temperature = temperature
+
+        if factorgraph is not None :
+            self.fg = factorgraph
+            self._get_Z()
+            self._get_prob_dist()
+
+        else:
+            pass
+
+
+    def _get_Z(self):
+
+        self.energy_per_state = {}
+
+        self.Z = 0
+
+        for state in itertools.product(range(2), repeat=len(self.fg.node_list)):
+
+            state_energy = Energy(state, self.fg).get_total_energy()
+
+            self.energy_per_state[state] = state_energy
+
+            self.Z += np.exp(-(1/self.temperature)*state_energy)
+
+    def _get_prob_dist(self):
+
+        prob_dist = {}
+
+        for state in itertools.product(range(2), repeat=len(self.fg.node_list)):
+
+            prob_dist[state] = np.exp(-(1/self.temperature)*self.energy_per_state[state])/self.Z
+
+        prob_dist['T'] = self.temperature
+
+        self.prob_dist = prob_dist
+
 
 
 class Energy():
@@ -81,71 +258,52 @@ class Energy():
 
     def get_total_energy(self):
 
-        network_copy = deepcopy(self.factorgraph)
-
         energy = 0
 
-        for node_info in self.factorgraph.nodes(data='list'):
+        facet_idx = 0
 
-            for interaction in node_info[1]:
+        for facet in self.factorgraph.facet_list:
 
-                state_list = []
-                if len(interaction[0]) > 1:
-                    if interaction[0] in network_copy.edges:
-                        for interacting_node in interaction[0]:
+            node_states = []
 
-                            state_list.append(self.current_state[interacting_node])
+            for node_idx in facet:
 
+                node_states.append(self.current_state[node_idx])
 
-                        energy += interaction[-1](*state_list, interaction[1])
-                else:
-                    energy += interaction[-1](self.current_state[interaction[0][0]], interaction[1])
+            energy += self.factorgraph.factor_list[facet_idx](node_states, self.factorgraph.weight_list[facet_idx])
 
-            network_copy.remove_node(node_info[0])
-
+            facet_idx += 1
 
         return energy
 
     def get_local_energy(self, targeted_node):
 
-        info = self.factorgraph.nodes[targeted_node]['list']
         energy = 0
 
-        for interaction in info:
+        involved_facets_idx = []
 
-            state_list = []
-            if len(interaction[0]) > 1:
-                for interacting_node in interaction[0]:
-                    state_list.append(self.current_state[interacting_node])
+        i = 0
 
-                energy += interaction[-1](*state_list, interaction[1])
-            else:
-                energy += interaction[-1](self.current_state[interaction[0][0]], interaction[1])
+        for facet in self.factorgraph.facet_list:
+
+            if targeted_node in facet:
+
+                involved_facets_idx.append(i)
+
+            i += 1
+
+
+        for facet_idx in involved_facets_idx :
+
+            node_states = []
+
+            for node_idx in self.factorgraph.facet_list[facet_idx]:
+
+                node_states.append(self.current_state[node_idx])
+
+            energy += self.factorgraph.factor_list[facet_idx](node_states, self.factorgraph.weight_list[facet_idx])
 
         return energy
-
-
-
-
-    def __call__(self, target_node_idx):
-        """__call__ returns the local energy of a node in the perturbed graph
-        at a certain time index
-
-        Note that the local energy for a node i at a time index "j" corresponds
-        to -log(P(X_i(t_{j+1}|X_i(t_j)).
-
-        Therefore, for a timeseries len(X) = N, there are (N-1) time index
-        for the local energy
-
-        :param node: a node of the graph
-        :param index: time index
-        :param g1: perturbed_graph instance
-        """
-
-        local_energy = 0
-        for interaction in self.factorgraph.node[target_node_idx]['list']:
-            energy += interaction[-1](interaction[0], interaction[1])
-        raise NotImplementedError("__call__ must be overwritten")
 
 class Proposer():
     """Propose new states for the system and give the energy variation"""
@@ -217,27 +375,39 @@ class BitFlipProposer(Proposer):
 
         flipped_local = self.get_local_energy(self.targeted_node)
 
-        energy_diff = current_local - flipped_local
+        energy_diff = flipped_local - current_local
 
         return self.total_energy + energy_diff
 
     def get_local_energy(self, targeted_node):
 
-        info = self.factorgraph.nodes[targeted_node]['list']
-        local_energy = 0
 
-        for interaction in info:
+        energy = 0
 
-            state_list = []
-            if len(interaction[0]) > 1:
-                for interacting_node in interaction[0]:
-                    state_list.append(self.state[interacting_node])
+        involved_facets_idx = []
 
-                local_energy += interaction[-1](*state_list, interaction[1])
-            else:
-                local_energy += interaction[-1](self.state[interaction[0][0]], interaction[1])
+        i = 0
 
-        return local_energy
+        for facet in self.factorgraph.facet_list:
+
+            if targeted_node in facet:
+
+                involved_facets_idx.append(i)
+
+            i += 1
+
+
+        for facet_idx in involved_facets_idx :
+
+            node_states = []
+
+            for node_idx in self.factorgraph.facet_list[facet_idx]:
+
+                node_states.append(self.state[node_idx])
+
+            energy += self.factorgraph.factor_list[facet_idx](node_states, self.factorgraph.weight_list[facet_idx])
+
+        return energy
 
     def rejected(self):
         """rejected reverse applied changes"""
@@ -250,25 +420,71 @@ class BitFlipProposer(Proposer):
 
 if __name__ == '__main__':
 
-    current = [1, 0, 1]
+    st = gudhi.SimplexTree()
+    if st.insert([0, 1]):
+        print("[0, 1] inserted")
+    if st.insert([0, 1, 2]):
+        print("[0, 1, 2] inserted")
+    if st.find([0, 1]):
+        print("[0, 1] found")
+    #result_str = 'num_vertices=' + repr(st.num_vertices())
+    #print(result_str)
+    #result_str = 'num_simplices=' + repr(st.num_simplices())
+    #print(result_str)
+    #print("skeleton(2) =")
+    #for sk_value in st.get_skeleton(2):
+    #    print(sk_value)
 
-    G = nx.generators.random_graphs.erdos_renyi_graph(3,1,seed=0)
+    print(st.get_skeleton(1))
 
-    FG = FactorGraph(G)
+    exit()
 
-    FG.set_factors()
+
+    current = [1, 1, 1]
+
+    FG = FactorGraph([[0, 1, 2]])
+
+    print(Prob_dist(FG).Z)
+    print(Prob_dist(FG).prob_dist)
 
     lte = Energy(current, FG)
 
-    print(lte.local_energy(0))
+    print(lte.get_local_energy(0))
 
-    print(lte.local_energy(1))
+    print(lte.get_local_energy(1))
 
-    print(lte.local_energy(2))
+    print(lte.get_total_energy()/(1 + sum(current)))
 
-    print(lte.total_energy())
+    print(FG.factor_list)
 
-    print(FG.nodes)
+    exit()
 
-    print(FG.nodes(data='list'))
+
+
+
+
+
+    current = [0, 0, 0]
+
+    #FG = FactorGraph([[0,1], [1, 2]])
+
+    current = [1, 0]
+
+    FG = FactorGraph([[0, 1]])
+    print(Prob_dist(FG).Z)
+    print(Prob_dist(FG).prob_dist)
+
+    lte = Energy(current, FG)
+
+    print(lte.get_local_energy(0))
+
+    print(lte.get_local_energy(1))
+
+    print(lte.get_local_energy(2))
+
+    print(lte.get_total_energy())
+
+    print(FG.factor_list)
+
+
 
