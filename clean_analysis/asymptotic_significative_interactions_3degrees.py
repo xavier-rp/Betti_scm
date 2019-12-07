@@ -490,8 +490,6 @@ def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix
                 chi2, p = dictionary[table_str]
 
             except:
-                print(row)
-                print('WHAT' , dictionary[table_str])
                 p = dictionary[table_str]
 
             writer.writerow([row[0], row[1], row[2], p])
