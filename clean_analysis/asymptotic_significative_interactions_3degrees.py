@@ -467,12 +467,16 @@ def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix
 
     buffer = []
 
-    with open(csvfile, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+    with open(csvfile, 'r') as csvfile, open(savename, 'w',  newline='') as fout:
         reader = csv.reader(csvfile)
         writer = csv.writer(fout)
         writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
         next(reader)
         for row in tqdm(reader):
+            row = row[:3]
+            row = [int(i) for i in row]
+
+            row.sort()
 
             cont_cube = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
 
@@ -486,7 +490,6 @@ def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix
                 chi2, p = dictionary[table_str]
 
             except:
-
                 p = dictionary[table_str]
 
             writer.writerow([row[0], row[1], row[2], p])
