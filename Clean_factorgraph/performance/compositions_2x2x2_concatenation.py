@@ -159,9 +159,9 @@ Time take =  8439.600536999998
 
     #exit()
     start = time.clock()
-    filename = 'CHANGE'
+    filename = 'dep_13'
 
-    original_table = np.array([[[25, 25], [25, 25]], [[25, 25], [25, 25]]])/2
+    original_table = np.array([[[13, 13], [13, 13]], [[13, 13], [13, 13]]])
 
     l1_list = []
     ratio_list = [1]
@@ -372,7 +372,7 @@ Time take =  8439.600536999998
         count = 0
 
         for key in keylist:
-            if table_dictio[key] > 0.01:
+            if table_dictio[key] < 0.01:
                 count += 1
             #print(key, table_dictio[key])
         print(number_to_partition, count/total)

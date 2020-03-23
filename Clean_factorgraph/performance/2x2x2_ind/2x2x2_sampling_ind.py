@@ -160,103 +160,118 @@ Time take =  8439.600536999998
 
     #exit()
     start = time.clock()
-    filename = 'CHANGE'
+    filename = 'ind_13_2'
 
-    original_table = np.array([[[25, 25], [25, 25]], [[25, 25], [25, 25]]])*2
+    original_table = np.array([[[13, 13], [13, 13]], [[13, 13], [13, 13]]])
 
     l1_list = []
-    ratio_list = [1]
+    total_ratio_list =  []
+    number_of_samples = 1000
 
     #Iterate over a range of number to partition. The L1 norm is equal to 2*number_to_partition
-    for number_to_partition in range(40 , 20, -1):
+    for i in range(0, 10):
+        if i > 0:
+            total_ratio_list.append(ratio_list)
 
-        table_dictio = {}
-        l1 = [np.array([number_to_partition])]
-        l2 = []
-        l3 = []
-        l4 = []
-        l5 = []
-        l6 = []
-        l7 = []
+        ratio_list = [1]
+        for number_to_partition in range(1, 51, 1):
 
-        for p in partitionfunc(number_to_partition, 2):  # revlex_partitions(number_to_partition):
-            l2.append(np.array(deepcopy(p)))
+            table_dictio = {}
+            l1 = [np.array([number_to_partition])]
+            l2 = []
+            l3 = []
+            l4 = []
+            l5 = []
+            l6 = []
+            l7 = []
 
-        for p in partitionfunc(number_to_partition, 3):  # revlex_partitions(number_to_partition):
-            l3.append(np.array(deepcopy(p)))
+            for p in partitionfunc(number_to_partition, 2):  # revlex_partitions(number_to_partition):
+                l2.append(np.array(deepcopy(p)))
 
-        for p in partitionfunc(number_to_partition, 4):  # revlex_partitions(number_to_partition):
-            l4.append(np.array(deepcopy(p)))
+            for p in partitionfunc(number_to_partition, 3):  # revlex_partitions(number_to_partition):
+                l3.append(np.array(deepcopy(p)))
 
-        for p in partitionfunc(number_to_partition, 5):  # revlex_partitions(number_to_partition):
-            l5.append(np.array(deepcopy(p)))
+            for p in partitionfunc(number_to_partition, 4):  # revlex_partitions(number_to_partition):
+                l4.append(np.array(deepcopy(p)))
 
-        for p in partitionfunc(number_to_partition, 6):  # revlex_partitions(number_to_partition):
-            l6.append(np.array(deepcopy(p)))
+            for p in partitionfunc(number_to_partition, 5):  # revlex_partitions(number_to_partition):
+                l5.append(np.array(deepcopy(p)))
 
-        for p in partitionfunc(number_to_partition, 7):  # revlex_partitions(number_to_partition):
-            l7.append(np.array(deepcopy(p)))
+            for p in partitionfunc(number_to_partition, 6):  # revlex_partitions(number_to_partition):
+                l6.append(np.array(deepcopy(p)))
 
-        number_of_samples = 1000
-        list_of_lists = []
-        pre_list_of_lists = [l1,l2,l3,l4,l5,l6,l7]
-        for liste in pre_list_of_lists:
-            if len(liste) > 0 :
-                list_of_lists.append(liste)
+            for p in partitionfunc(number_to_partition, 7):  # revlex_partitions(number_to_partition):
+                l7.append(np.array(deepcopy(p)))
 
-        for i in range(0, number_of_samples):
+            list_of_lists = []
+            pre_list_of_lists = [l1,l2,l3,l4,l5,l6,l7]
+            for liste in pre_list_of_lists:
+                if len(liste) > 0 :
+                    list_of_lists.append(liste)
 
-            random_number_1 = np.random.randint(0, len(list_of_lists))
-            random_number_2 = np.random.randint(0, len(list_of_lists) - random_number_1)
+            for i in range(0, 5*number_of_samples):
 
-            first_list = list_of_lists[random_number_1]
-            second_list = list_of_lists[random_number_2]
+                random_number_1 = np.random.randint(0, len(list_of_lists))
+                random_number_2 = np.random.randint(0, len(list_of_lists) - random_number_1)
 
-            first_partition = random.choice(first_list)
-            second_partition = random.choice(second_list)
+                first_list = list_of_lists[random_number_1]
+                second_list = list_of_lists[random_number_2]
 
-            which_negative = np.random.randint(2)
+                first_partition = random.choice(first_list)
+                second_partition = random.choice(second_list)
 
-            if which_negative:
-                total_partition = np.concatenate((-1*first_partition, second_partition))
-            else:
-                total_partition = np.concatenate((first_partition, -1*second_partition))
+                which_negative = np.random.randint(2)
 
-            while len(total_partition) < 8:
-                total_partition = np.concatenate((total_partition, np.array([0])))
-            np.random.shuffle(total_partition)
-            # We add the permutation to the original_table. If the resulting table has negative
-            # values, it doesn't represent a contingency table, so we discard it
-            sampled_table = np.array(total_partition).reshape((2, 2, 2)) + original_table
-            if np.any(sampled_table < 0):
-                continue
-            else:
-                # If the table is valid, we find its expected table under the hypothesis of independance
-                # and evaluate its pvalue, and we add this table in a dictionary (to avoid repetitions
-                # because there are many permutations that are identical)
-                expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(sampled_table)
-                if expected is not None:
-                    p = chisq_test(sampled_table, expected)[1]
-                    #try :
-                    #    print(table_dictio[tuple(total_partition)])
-                    #except:
-                    table_dictio[tuple(total_partition)] = p
+                if which_negative:
+                    total_partition = np.concatenate((-1*first_partition, second_partition))
                 else:
-                    print(sampled_table)
+                    total_partition = np.concatenate((first_partition, -1*second_partition))
 
-        keylist = list(table_dictio.keys())
-        total = len(keylist)
-        count = 0
+                while len(total_partition) < 8:
+                    total_partition = np.concatenate((total_partition, np.array([0])))
+                np.random.shuffle(total_partition)
+                # We add the permutation to the original_table. If the resulting table has negative
+                # values, it doesn't represent a contingency table, so we discard it
+                sampled_table = np.array(total_partition).reshape((2, 2, 2)) + original_table
+                if np.any(sampled_table < 0):
+                    continue
+                else:
+                    # If the table is valid, we find its expected table under the hypothesis of independance
+                    # and evaluate its pvalue, and we add this table in a dictionary (to avoid repetitions
+                    # because there are many permutations that are identical)
+                    expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(sampled_table)
+                    if expected is not None:
+                        p = chisq_test(sampled_table, expected)[1]
+                        #try :
+                        #    print(table_dictio[tuple(total_partition)])
+                        #except:
+                        table_dictio[tuple(total_partition)] = p
+                    else:
+                        print(sampled_table)
 
-        for key in keylist:
-            if table_dictio[key] > 0.01:
-                count += 1
-                # print(key, table_dictio[key])
-        print(number_to_partition, count / total)
-        print('TOTAL : ', total, ' COUNT : ', count)
-        print('Time taken = ', time.clock() - start)
+            keylist = list(table_dictio.keys())
+            total = len(keylist)
+            count = 0
 
-        l1_list.append(number_to_partition * 2)
-        ratio_list.append(count / total)
+            for key in keylist:
+                if table_dictio[key] > 0.01:
+                    count += 1
+                    # print(key, table_dictio[key])
+            print(number_to_partition, count / total)
+            print('TOTAL : ', total, ' COUNT : ', count)
+            print('Time taken = ', time.clock() - start)
+
+            ratio_list.append(count / total)
+
+    total_ratio_list.append(ratio_list)
+    print(total_ratio_list)
+
+    total_ratio_list = np.array(total_ratio_list)
+    print(total_ratio_list)
+
+    print(total_ratio_list.shape)
+
+    np.save(filename, total_ratio_list)
+
 
 

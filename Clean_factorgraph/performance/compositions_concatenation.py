@@ -77,12 +77,12 @@ def partitionfunc(n,k,l=1):
 
 if __name__ == '__main__':
     start = time.clock()
-    filename = 'CHANGE'
+    filename = 'dep_35_35'
 
     original_table = np.array([[45, 30], [10, 15]])
     original_table = np.array([[295, 317], [268, 502]])
     #original_table = np.array([[30, 20], [20, 30]])
-    original_table = np.array([[30, 0], [0, 70]])
+    original_table = np.array([[35, 0], [0, 35]])
 
     l1_list = []
     ratio_list = [1]

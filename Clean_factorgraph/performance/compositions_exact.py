@@ -109,7 +109,7 @@ if __name__ == '__main__':
     filename = 'ind_10_exact'
     nb_samples = 1000000
 
-    original_table = np.array([[4, 0], [0, 4]])
+    original_table = np.array([[10, 0], [0, 10]])
     #exp = mle_2x2_ind(original_table)
     #print(chisq_test(original_table, exp))
     #exit()
@@ -223,7 +223,7 @@ if __name__ == '__main__':
         count = 0
 
         for key in keylist:
-            if table_dictio[key] < 0.01:
+            if table_dictio[key] > 0.01:
                 count += 1
             #print(key, table_dictio[key])
         print(number_to_partition, count/total)
