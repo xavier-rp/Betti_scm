@@ -16,12 +16,15 @@ from copy import deepcopy
 class FactorGraph():
     """Original graph that encodes all the interactions."""
 
-    def __init__(self, facet_list=[], N=400, alpha=0.01):
+    def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False):
         """__init__
         :param facet_list: (list of lists) Each list in the list is a combination of integers
                             representing the nodes of a facet in a simplicial complex.
         """
-
+        # build sc stands for Build simplicial complex. It means that, when trying to find probabilities,
+        # we only allow probabilities that will make it possible to find empty triangles that will be
+        # transformed in 2-simplices when we test the triplet.
+        self.build_cs = build_sc
         self.alpha = alpha
         self.N = N
         self.facet_list = facet_list
@@ -128,15 +131,40 @@ class FactorGraph():
 
     def set_probabilities_2x2x2(self):
 
-        switch = True
-        while switch:
-            cont_cube = np.random.multinomial(self.N, [1 / 8] * 8).reshape((2, 2, 2))
-            exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
-            if exp is not None:
-                pval = self.chisq_test_here(cont_cube, exp)[1]
-                if pval < self.alpha and np.count_nonzero(cont_cube)==8:
-                    switch = False
-        #print(cont_cube)
+        if self.build_cs:
+            switch = True
+            while switch:
+                probs = np.random.rand(8)
+                probs = probs/np.sum(probs)
+                cont_cube = np.random.multinomial(self.N, probs).reshape((2, 2, 2))
+                exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+                if exp is not None:
+                    pval = self.chisq_test_here(cont_cube, exp)[1]
+                    if pval < self.alpha and np.count_nonzero(cont_cube) == 8:
+                        contab1 = np.sum(cont_cube, axis=0)
+                        exp1 = mle_2x2_ind(contab1)
+                        pval1 = self.chisq_test_here(contab1, exp1)[1]
+                        contab2 = np.sum(cont_cube, axis=1)
+                        exp2 = mle_2x2_ind(contab2)
+                        pval2 = self.chisq_test_here(contab2, exp2)[1]
+                        contab3 = np.sum(cont_cube, axis=2)
+                        exp3 = mle_2x2_ind(contab3)
+                        pval3 = self.chisq_test_here(contab3, exp3)[1]
+                        if pval1 < self.alpha and pval2 < self.alpha and pval3 < self.alpha:
+                            switch = False
+
+        else:
+            switch = True
+            while switch:
+                probs = np.random.rand(8)
+                probs = probs / np.sum(probs)
+                cont_cube = np.random.multinomial(self.N, probs).reshape((2, 2, 2))
+                exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+                if exp is not None:
+                    pval = self.chisq_test_here(cont_cube, exp)[1]
+                    if pval < self.alpha and np.count_nonzero(cont_cube)==8:
+                        switch = False
+
 
         a = np.log(cont_cube[1, 1, 1])
         b = np.log(cont_cube[1, 1, 0])
@@ -244,7 +272,7 @@ class Prob_dist():
 
             prob_dist[state] = np.exp(-(1/self.temperature)*self.energy_per_state[state])/self.Z
 
-        prob_dist['T'] = self.temperature
+        #prob_dist['T'] = self.temperature
 
         self.prob_dist = prob_dist
 

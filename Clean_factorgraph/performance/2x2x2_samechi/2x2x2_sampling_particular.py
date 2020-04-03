@@ -239,10 +239,10 @@ Time take =  8439.600536999998
     #print(test_models(collision, 3))
     #exit()
     #[[[65 42]  [39 60]] [[46 62] [40 46]]]
-    #original_table = np.array([[40, 10], [10, 40]])*4
-    #exp = mle_2x2_ind(original_table)
-    #print(chisq_test(original_table, exp, df=1))
-    #exit()
+    original_table = np.array([[30, 20], [20, 30]])*5
+    exp = mle_2x2_ind(original_table)
+    print(chisq_test(original_table, exp, df=1))
+    exit()
     #original_table = np.array([[[33, 22], [13, 30]], [[24, 23], [26, 29]]])
     #original_table = np.array([[[13, 14], [19, 7]], [[7, 6], [12, 26]]])
 
@@ -268,7 +268,7 @@ Time take =  8439.600536999998
 
     original_table = np.array([[[77, 12], [15, 87]], [[68, 67], [65, 9]]]) #Used for data_100_2 three_dep_triangle_to_simplex
     print(np.sum(original_table,axis=0))
-    exit()
+    #exit()
     #original_table = np.array([[[49, 27], [46, 52]], [[64, 74], [45, 43]]])
     #original_table = np.array([[[47, 29], [42, 58]], [[74, 65], [40, 45]]])
     #original_table = np.array([[[155, 15], [15, 15]], [[15, 15], [15, 155]]]) # To accept empty triangles

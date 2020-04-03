@@ -9,7 +9,7 @@ from sympy.solvers import solve
 from sympy import Symbol
 from matplotlib import rc
 
-def problist_to_table(prob_dist, sample_size):
+def problist_to_table_old(prob_dist, sample_size):
 
     dimension = len(prob_dist) - 1
     table = np.random.rand(dimension)
@@ -25,6 +25,74 @@ def problist_to_table(prob_dist, sample_size):
     #table = np.roll(table, (1, 1), (0, 1))
 
     return table * sample_size
+
+from sympy import Symbol
+from matplotlib import rc
+
+def problist_to_2x2_table(prob_dist, idx1, idx2, sample_size):
+
+    table = np.random.rand(2,2)
+    p_00 = 0
+    p_10 = 0
+    p_01 = 0
+    p_11 = 0
+    for key in list(prob_dist.keys()):
+        if key[idx1] == 0 and key[idx2] == 0:
+            p_00 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0:
+            p_10 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1:
+            p_01 += prob_dist[key]
+        else:
+            p_11 += prob_dist[key]
+
+    table[0, 0] = p_00
+    table[1, 0] = p_10
+    table[0, 1] = p_01
+    table[1, 1] = p_11
+
+    return table * sample_size
+
+def problist_to_2x2x2_cube(prob_dist, idx1, idx2, idx3, sample_size):
+
+    table = np.random.rand(2,2,2)
+    p_000 = 0
+    p_010 = 0
+    p_001 = 0
+    p_011 = 0
+    p_100 = 0
+    p_110 = 0
+    p_101 = 0
+    p_111 = 0
+    for key in list(prob_dist.keys()):
+        if key[idx1] == 0 and key[idx2] == 0 and key[idx3] == 0 :
+            p_000 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0 and key[idx3] == 0 :
+            p_010 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1 and key[idx3] == 0 :
+            p_001 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 1 and key[idx3] == 0:
+            p_011 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 0 and key[idx3] == 1:
+            p_100 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0 and key[idx3] == 1:
+            p_110 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1 and key[idx3] == 1:
+            p_101 += prob_dist[key]
+        else:
+            p_111 += prob_dist[key]
+
+    table[0, 0, 0] = p_000
+    table[0, 1, 0] = p_010
+    table[0, 0, 1] = p_001
+    table[0, 1, 1] = p_011
+    table[1, 0, 0] = p_100
+    table[1, 1, 0] = p_110
+    table[1, 0, 1] = p_101
+    table[1, 1, 1] = p_111
+
+    return table * sample_size
+
 
 def distance_to_original(bam, original):
 
@@ -76,8 +144,66 @@ def chisq_test_here(cont_tab, expected, df=1):
     return test_stat, p_val
 
 if __name__ == '__main__':
+    observations = 100
 
-    #factorgraph = FactorGraph([[0, 1, 2], [3, 4]], N=1000, alpha=0.01)
+    factorgraph = FactorGraph([[0, 1, 2], [3, 4]], N=observations, alpha=0.01)
+
+
+    with open('factortest.pkl', 'wb') as output:
+        pickle.dump(factorgraph, output, pickle.HIGHEST_PROTOCOL)
+
+    #exit()
+    #probdist = Prob_dist(factorgraph)
+
+    #print(probdist.prob_dist)
+
+    #for one_simp in itertools.combinations(factorgraph.node_list, 2):
+    #    cont_table = problist_to_2x2_table(probdist.prob_dist, one_simp[0], one_simp[1], observations)
+    #    expected_1 = mle_2x2_ind(cont_table)
+    #    pval = chisq_test_here(cont_table, expected_1)[1]
+
+    #    print(one_simp, pval)
+
+    #for two_simp in itertools.combinations(factorgraph.node_list, 3):
+
+    #    cont_cube = problist_to_2x2x2_cube(probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], observations)
+    #    expected_2 = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+    #    if expected_2 is not None:
+    #        pval = chisq_test_here(cont_cube, expected_2)[1]
+    #    else :
+    #        pval = 1
+
+    #    print(two_simp, pval)
+
+    path_to_factorgraph = 'factortest.pkl'
+    #del(factorgraph)
+    #del(probdist)
+    with open(path_to_factorgraph, 'rb') as fg_file:
+        factorgraph = pickle.load(fg_file)
+        probdist = Prob_dist(factorgraph)
+        print(probdist.prob_dist)
+
+        for one_simp in itertools.combinations(factorgraph.node_list, 2):
+            cont_table = problist_to_2x2_table(probdist.prob_dist, one_simp[0], one_simp[1], observations)
+            expected_1 = mle_2x2_ind(cont_table)
+            pval = chisq_test_here(cont_table, expected_1)[1]
+            #if pval < 0.05:
+            print(one_simp, pval)
+
+        for two_simp in itertools.combinations(factorgraph.node_list, 3):
+
+            cont_cube = problist_to_2x2x2_cube(probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], observations)
+            expected_2 = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+            if expected_2 is not None:
+                pval = chisq_test_here(cont_cube, expected_2)[1]
+            else:
+                pval = 1
+            #if pval < 0.05:
+            print(two_simp, pval)
+
+    #print(problist_to_2x2_table(probdist.prob_dist, 2, 3, 100))
+
+    exit()
 
     #with open('012_34_N1000.pkl', 'wb') as output:
     #    pickle.dump(factorgraph, output, pickle.HIGHEST_PROTOCOL)
@@ -99,8 +225,9 @@ if __name__ == '__main__':
     #        '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Simplicial_complex_onefactorgraph/data_01_two_facets_disco_1000/bipartite_' + str(
     #            i), bipartite)
 
-    exit()
-    path_to_factorgraph = 'TODO'
+    #exit()
+    path_to_factorgraph = '012_34_N1000.pkl'
+    path_to_bams = '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Simplicial_complex_onefactorgraph/data_01_two_facets_disco_1000/bipartite_'
     with open(path_to_factorgraph, 'rb') as fg_file:
         factorgraph = pickle.load(fg_file)
 
@@ -120,9 +247,7 @@ if __name__ == '__main__':
     for i in np.arange(0, 1000, 1):
         print(i)
 
-        bam = np.load(
-            '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Simplicial_complex_deux_facettes/data_01_two_facets_disco_800/bipartite_' + str(
-                i) + '.npy')
+        bam = np.load(path_to_bams + str(i) + '.npy')
         nb_found_links = 0
         for one_simp in itertools.combinations(factorgraph.node_list, 2):
             cont_table = get_cont_table(one_simp[0], one_simp[1], bam)

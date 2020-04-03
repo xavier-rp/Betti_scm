@@ -98,8 +98,9 @@ if __name__ == '__main__':
     #        '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Simplicial_complex_onefactorgraph/data_01_two_facets_co_1000/bipartite_' + str(
     #            i), bipartite)
 
-    exit()
-    path_to_factorgraph = 'TODO'
+    #exit()
+    path_to_factorgraph = '012_23_N1000.pkl'
+    path_to_bams = '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Simplicial_complex_onefactorgraph/data_01_two_facets_co_1000/bipartite_'
     with open(path_to_factorgraph, 'rb') as fg_file:
         factorgraph = pickle.load(fg_file)
 
@@ -120,9 +121,7 @@ if __name__ == '__main__':
     for i in np.arange(0, 1000, 1):
         print(i)
 
-        bam = np.load(
-            '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Simplicial_complex_deux_facettes/data_01_two_facets_co_400/bipartite_' + str(
-                i) + '.npy')
+        bam = np.load(path_to_bams + str(i) + '.npy')
         nb_found_links = 0
         for one_simp in itertools.combinations(factorgraph.node_list, 2):
             cont_table = get_cont_table(one_simp[0], one_simp[1], bam)
