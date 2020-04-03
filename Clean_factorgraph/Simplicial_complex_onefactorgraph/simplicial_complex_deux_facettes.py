@@ -93,6 +93,36 @@ def problist_to_2x2x2_cube(prob_dist, idx1, idx2, idx3, sample_size):
 
     return table * sample_size
 
+def mutual_information(prob_dist, idx1, idx2):
+
+    table = np.random.rand(2, 2)
+
+    p_00 = 0
+    p_10 = 0
+    p_01 = 0
+    p_11 = 0
+    for key in list(prob_dist.keys()):
+        if key[idx1] == 0 and key[idx2] == 0:
+            p_00 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0:
+            p_10 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1:
+            p_01 += prob_dist[key]
+        else:
+            p_11 += prob_dist[key]
+
+    table[0, 0] = p_00
+    table[1, 0] = p_10
+    table[0, 1] = p_01
+    table[1, 1] = p_11
+
+    py = np.sum(table, axis = 0).reshape(1, 2)
+    px = np.sum(table, axis = 1).reshape(2, 1)
+
+    pxpy = np.matmult(px, py)
+
+    return np.sum(table * np.log(table/pxpy))
+
 
 def distance_to_original(bam, original):
 
