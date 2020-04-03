@@ -162,7 +162,7 @@ class FactorGraph():
         x3 = node_states[2]
         return weight * (a*(x1*x2*x3) + (1-x1)*(1-x2)*(1-x3) + b*x1*x2 + c*x1*x3 + d*x2*x3 + (1-x1)*(1-x2) + (1-x1)*(1-x3) + (1-x2)*(1-x3) + e*x1 + f*x2 + g*x3 + (1-x1) + (1-x2) + (1-x3))
 
-    def threefactor_table_entry(self, node_states, weight, a=2, b=1.3, c=1.2, d=1, e=0.7, f=0.9, g=0.8, h=0.3):
+    def threefactor_table_entry(self, node_states, weight, a=1, b=1, c=1, d=1, e=1, f=1, g=1, h=1):
         x1 = node_states[0]
         x2 = node_states[1]
         x3 = node_states[2]
@@ -189,7 +189,7 @@ class FactorGraph():
 
         return weight * (a*x1*x2 + b*(1-x1)*x2 + c*x1*(1-x2) + d*(1-x1)*(1-x2))
 
-    def twofactor_table_entry_pos(self, node_states, weight, a=np.log(0.48), b=0, c=0, d=np.log(1.52)):
+    def twofactor_table_entry_pos(self, node_states, weight, a=np.log(48), b=np.log(2), c=np.log(2), d=np.log(48)):
 
         x1 = node_states[0]
         x2 = node_states[1]

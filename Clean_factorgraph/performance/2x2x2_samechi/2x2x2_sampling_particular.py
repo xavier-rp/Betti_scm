@@ -138,15 +138,15 @@ def test_models(cont_cube, alpha):
     expected_AC_BC = mle_2x2x2_AC_BC(cont_cube)
 
     expected_ind = iterative_proportional_fitting_ind(cont_cube)
-    print(expected_ind)
+    #print(expected_ind)
 
     expected_AB_C = iterative_proportional_fitting_AB_C(cont_cube)
-    print(expected_AB_C)
+    #print(expected_AB_C)
 
     expected_AC_B = iterative_proportional_fitting_AC_B(cont_cube)
-    print(expected_AC_B)
+    #print(expected_AC_B)
     expected_BC_A = iterative_proportional_fitting_BC_A(cont_cube)
-    print(expected_BC_A)
+    #print(expected_BC_A)
     expected_AB_AC = iterative_proportional_fitting_AB_AC(cont_cube)
 
     expected_AB_BC = iterative_proportional_fitting_AB_BC(cont_cube)
@@ -239,14 +239,20 @@ Time take =  8439.600536999998
     #print(test_models(collision, 3))
     #exit()
     #[[[65 42]  [39 60]] [[46 62] [40 46]]]
-    original_table = np.array([[[33, 22], [13, 30]], [[24, 23], [26, 29]]])
+    #original_table = np.array([[40, 10], [10, 40]])*4
+    #exp = mle_2x2_ind(original_table)
+    #print(chisq_test(original_table, exp, df=1))
+    #exit()
+    #original_table = np.array([[[33, 22], [13, 30]], [[24, 23], [26, 29]]])
+    #original_table = np.array([[[13, 14], [19, 7]], [[7, 6], [12, 26]]])
+
     #original_table = np.array([[[20, 24], [25, 32]], [[30, 21], [22, 26]]])
     #original_table = np.array([[[36, 13], [24, 27]], [[25, 25], [31, 19]]])
-    original_table = np.array([[[59, 32], [45, 57]], [[54, 64], [49, 40]]])
-    problist = original_table.flatten()/np.sum(original_table)
-    expected_AC_B = mle_2x2x2_AC_B(original_table)
-    exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(original_table)
-    print(chisq_test(exp, expected_AC_B, df=2))
+    #original_table = np.array([[[59, 32], [45, 57]], [[54, 64], [49, 40]]])
+    #problist = original_table.flatten()/np.sum(original_table)
+    #expected_AC_B = mle_2x2x2_AC_B(original_table)
+    #exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(original_table)
+    #print(chisq_test(exp, expected_AC_B, df=2))
     #original_table = np.array([[[25, 25], [25, 25]], [[21, 25], [25, 29]]])
     #print(test_models(original_table, 9))
     #exit()
@@ -254,7 +260,30 @@ Time take =  8439.600536999998
     chisqlist = []
     #for i in range(0, 100000):
     #print(i)
+    #For rejection of H0 :     [[[49 27]  [26 64]] [[57 74]  [58 45]]]
+    original_table = np.array([[[49, 27], [26, 64]], [[57, 74], [58, 45]]]) # For rejection of H0 and the others
+    # For rejection of H0 :     [[[51 25] [19 64]][[63 85] [54 39]]]
+    original_table = np.array([[[51, 25], [19, 64]], [[63, 85], [54, 39]]])  # For rejection of H0 and the others
+    # For rejection of H0 :    [[[62 24]  [20 65]] [[59 93]  [47 30]]] OU [[[ 52  29]  [  8  63]] [[ 50 111]  [ 51  36]]]
+
+    original_table = np.array([[[77, 12], [15, 87]], [[68, 67], [65, 9]]]) #Used for data_100_2 three_dep_triangle_to_simplex
+    print(np.sum(original_table,axis=0))
+    exit()
+    #original_table = np.array([[[49, 27], [46, 52]], [[64, 74], [45, 43]]])
+    #original_table = np.array([[[47, 29], [42, 58]], [[74, 65], [40, 45]]])
+    #original_table = np.array([[[155, 15], [15, 15]], [[15, 15], [15, 155]]]) # To accept empty triangles
+    #original_table = np.array([[[41, 35], [41, 59]], [[76, 59], [39, 50]]])
+
+    # Empty triangle to 2-simplex
+
+
+    #original_table = np.array([[[25, 51], [63, 19]], [[85, 64], [39, 54]]])
+    #print(test_models(original_table, 9))
+    print(original_table/np.sum(original_table), np.sum(original_table))
+
+    #problist = original_table.flatten() / np.sum(original_table)
     #original_table = np.random.multinomial(400, problist).reshape((2,2,2))
+
     print(original_table)
     print(test_models(original_table, 9))
     exit()

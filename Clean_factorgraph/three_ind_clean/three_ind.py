@@ -28,17 +28,52 @@ def problist_to_table(prob_dist, sample_size):
 
 def distance_to_original(bam, original):
 
-    sampled_table = get_cont_table(0, 1, bam)
-    N = np.sum(sampled_table)
-    sampled_table = sampled_table
+    sampled_table = get_cont_cube(0,1,2, bam)
 
-    N_original = np.sum(original)
 
-    print(N_original)
 
-    return np.nan_to_num(np.sum(np.abs((sampled_table - original))))
+    return np.sum(np.abs((sampled_table - original)))
 
     #return np.nan_to_num(np.sum((sampled_table - original/N_original*N)**2/(original/N_original*N)))
+
+def mle_multinomial_from_table(cont_table):
+    n = np.sum(cont_table)
+    p_list = []
+    for element in cont_table.flatten():
+        p_list.append(element/n)
+
+    return p_list
+
+def multinomial_problist_cont_cube(nb_trials, prob_list, s=1):
+    return np.random.multinomial(nb_trials, prob_list, s).reshape(s, 2, 2, 2)
+
+def sampled_chisq_test(cont_table, expected_table, sampled_array):
+    if float(0) in expected_table:
+        test_stat = 0
+        pval = 1
+    else:
+        test_stat = np.sum((cont_table - expected_table) ** 2 / expected_table)
+        cdf = np.sum((sampled_array < test_stat) * 1) / len(sampled_array)
+        pval = 1 - cdf
+    return test_stat, pval
+
+def chisq_formula_vector_for_cubes(cont_tables, expected):
+    # Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
+    # via MLE or iterative proportional fitting.
+
+    return np.nan_to_num(np.sum(np.sum(np.sum((cont_tables - expected) ** 2 / expected, axis = 1), axis = 1), axis=1))
+
+def chisq_test_here(cont_tab, expected, df=1):
+    #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
+    #via MLE or iterative proportional fitting.
+    if np.any(expected == 0):
+        print('HERE')
+        return 0, 1
+    #df = 7
+    test_stat = np.sum((cont_tab-expected)**2/expected)
+    p_val = chi2.sf(test_stat, df)
+
+    return test_stat, p_val
 
 if __name__ == '__main__':
 
@@ -46,94 +81,83 @@ if __name__ == '__main__':
     For this one, we're going to generate a two_factor, but we adjust the probabilities, so that both are independent
     """
 
-    ind_25 = np.load('dep_48_2_2_48.npy')
-    rc('text', usetex=True)
-    rc('font', size=16)
+    #ind_25 = np.load('dep_48_2_2_48.npy')
+    #rc('text', usetex=True)
+    #rc('font', size=16)
 
-    plt.plot(np.arange(0, 2 * len(ind_25), 2), ind_25, marker='x', markeredgecolor='black', markerfacecolor='black',
-             markersize='7', color='#00a1ffff', linewidth='3', label='N = 100')
+    #plt.plot(np.arange(0, 2 * len(ind_25), 2), ind_25, marker='x', markeredgecolor='black', markerfacecolor='black',
+    #         markersize='7', color='#00a1ffff', linewidth='3', label='N = 100')
 
-    plt.legend(loc=0)
-    plt.xlabel('Distance $L_1$')
-    plt.ylabel('Taux de succ\`es')
+    #plt.legend(loc=0)
+    #plt.xlabel('Distance $L_1$')
+    #plt.ylabel('Taux de succ\`es')
     # plt.grid()
-    plt.xlim([0, 96])
+    #plt.xlim([0, 96])
     #plt.ylim([0.5, 1.05])
-    plt.show()
+    #plt.show()
 
-    factorgraph = FactorGraph([[0, 1]])
+    factorgraph = FactorGraph([[0, 1, 2]])
     #print(factorgraph.factor_list)
     probdist = Prob_dist(factorgraph)
     print(probdist.prob_dist)
 
-    table_test = problist_to_table(probdist.prob_dist, 1000)
+    #table_test = problist_to_table(probdist.prob_dist, 1000)
 
+
+    table_test = problist_to_table(probdist.prob_dist, 104)
     print(table_test)
-    #exit()
-    a = 49 / 100
-    b = 1 / 100
-    c = 1 / 100
-    d = 49 / 100
-
-    x = Symbol('x')
-    y = Symbol('y')
-    z = Symbol('z')
-    w = Symbol('w')
-    print(solve(
-        [(a - 1) * x + a * y + a * z + a * w, b * x + (b - 1) * y + b * z + b * w, c * x + c * y + (c - 1) * z + c * w,
-         d * x + d * y + d * z + (d - 1) * w]))
-
-    table_test = problist_to_table(probdist.prob_dist, 100)
-    table_test = np.array([[48, 2], [2, 48]])
-    #exit()
-
-    #mle = mle_2x2_ind(table_test)
-    #print(np.sum((table_test - mle)**2/(mle)))
-    #print(chisq_test(table_test, mle_2x2_ind(table_test)))
 
     #exit()
 
-    #with open('factorgraph_two_disco.pkl', 'wb') as output:
+    #with open('factorgraph_three-ind.pkl', 'wb') as output:
     #    pickle.dump(factorgraph, output, pickle.HIGHEST_PROTOCOL)
 
     #for i in np.arange(0, 10000, 1):
 
-    #    state = np.random.randint(2, size=2)
+    #    state = np.random.randint(2, size=3)
     #    print(state)
 
     #    energy_obj = Energy(state, factorgraph)
     #    proposer = BitFlipProposer(factorgraph, energy_obj, state)
     #    sampler = Sampler(proposer, temperature=1, initial_burn=5, sample_burn=5)
-    #    sampler.sample(100)
+    #    sampler.sample(104)
     #    print(sampler.results['nb_rejected'])
     #    print(sampler.results['nb_success'] )
 
     #    bipartite = build_bipartite(sampler.results['sample'])
-    #    np.save('/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Two_co_clean/data_test_100/bipartite_' + str(i), bipartite)
+    #    np.save('/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/three_ind_clean/data_100/bipartite_' + str(i), bipartite)
 
     #exit()
 
     list_of_pval_list = []
     pval_list = []
     distance_list = []
-
+    link_count = []
     for i in np.arange(0, 10000, 1):
 
         if i % 1000 == 0 and i != 0:
             list_of_pval_list.append(copy.deepcopy(pval_list))
             pval_list = []
 
-        bam = np.load('/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/Two_co_clean/data_test_100/bipartite_' +str(i) + '.npy')
+        bam = np.load('/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/three_ind_clean/data_104/bipartite_' +str(i) + '.npy')
         #print(bam.shape)
+        cont_table = get_cont_cube(0, 1, 2, bam)
+
+        exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_table)
+
+        pval = chisq_test_here(cont_table, exp, df=1)[1]
+
         distance_list.append(distance_to_original(bam, table_test))
+        if distance_to_original(bam, table_test) > 26 :
+            print(cont_table)
+        print('dist ', distance_to_original(bam, table_test))
 
-        cont_table = get_cont_table(0, 1, bam)
 
-        print(cont_table)
+        #print(cont_table)
 
-        analyser = Analyser(bam, '8_poster_asympt')
-
-        pval = analyser.analyse_asymptotic(0.01)
+        analyser = Analyser(bam, '/home/xavier/Documents/Projet/Betti_scm/Clean_factorgraph/three_ind_clean/factorgraph_three-ind')
+        link_count.append(analyser.analyse_asymptotic_for_triangle(0.01))
+        #pval = analyser.analyse_asymptotic(0.01)
 
         #if i == 2:
         #    cont_table = get_cont_table(0, 1, bam)
@@ -149,7 +173,11 @@ if __name__ == '__main__':
         #    print('Here', cont_table, expected, pval, chis)
 
         pval_list.append(pval)
+
     list_of_pval_list.append(pval_list)
+    print(len(np.where(np.array(link_count) == 0)[0]), len(np.where(np.array(link_count) == 1)[0]), len(np.where(np.array(link_count) == 2)[0]), len(np.where(np.array(link_count) == 3)[0]))
+
+
     distance_list.sort()
     print(distance_list)
     rc('text', usetex=True)

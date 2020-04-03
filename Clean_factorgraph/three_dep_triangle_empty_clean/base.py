@@ -162,7 +162,9 @@ class FactorGraph():
         x3 = node_states[2]
         return weight * (a*(x1*x2*x3) + (1-x1)*(1-x2)*(1-x3) + b*x1*x2 + c*x1*x3 + d*x2*x3 + (1-x1)*(1-x2) + (1-x1)*(1-x3) + (1-x2)*(1-x3) + e*x1 + f*x2 + g*x3 + (1-x1) + (1-x2) + (1-x3))
 
-    def threefactor_table_entry(self, node_states, weight, a=2, b=1.3, c=1.2, d=1, e=0.7, f=0.9, g=0.8, h=0.3):
+    # For rejection of H0 :[[[62. 19.]  [16. 80.]] [[70. 64.]  [63. 26.]]] [[[77. 12.]  [15. 87.]] [[68. 67.]  [65.  9.]]]
+    # original_table = np.array([[[41, 35], [41, 59]], [[76, 59], [39, 50]]])
+    def threefactor_table_entry(self, node_states, weight, a=np.log(50), b=np.log(39), c=np.log(59), d=np.log(59), e=np.log(76), f=np.log(41), g=np.log(35), h=np.log(41)):
         x1 = node_states[0]
         x2 = node_states[1]
         x3 = node_states[2]
